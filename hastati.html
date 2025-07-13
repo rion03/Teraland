@@ -2,7 +2,6 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8" />
-
   <title>하스타티 메인</title>
   <style>
     body { margin: 0; font-family: Pretendard, sans-serif; background: #f5f6fa; }
@@ -25,6 +24,14 @@
     button {
       background: #2f80ed; color: white;
       font-weight: bold; border: none; cursor: pointer;
+    }
+    #admin-panel {
+      background: white; margin: 32px auto; padding: 20px; max-width: 600px;
+      border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    #admin-panel h3 { margin-top: 0; }
+    #admin-panel button {
+      width: auto; margin-right: 8px; padding: 6px 12px;
     }
   </style>
 </head>
@@ -53,26 +60,30 @@
       <h3>로그인</h3>
       <input id="login-id" placeholder="아이디">
       <input id="login-pw" type="password" placeholder="비밀번호">
-      <button onclick="handleLogin()">로그인</button>
+      <button type="button" onclick="handleLogin()">로그인</button>
     </div>
     <div id="register-form" style="display:none">
       <h3>회원가입</h3>
       <input id="reg-id" placeholder="아이디 (영문+숫자 6자 이상)">
       <input id="reg-pw" type="password" placeholder="비밀번호 (영문+숫자+특수문자)">
-
       <input id="reg-nick" placeholder="디스코드 닉네임">
       <select id="reg-role">
         <option>하스타티</option>
         <option>레가투스</option>
         <option>헤나</option>
       </select>
-      <button onclick="handleRegister()">회원가입</button>
+      <button type="button" onclick="handleRegister()">회원가입</button>
     </div>
   </div>
 
-  <script>
-    let isAdmin = false;
+  <!-- 관리자 승인 패널 -->
+  <div id="admin-panel" style="display:none;">
+    <h3>🌿 회원가입 승인 대기 목록</h3>
+    <div id="pending-users"></div>
+  </div>
 
+  <script>
+    // 사용자 정보 확인 및 로그인 상태 표시
     const currentUserId = sessionStorage.getItem("currentUser");
     const user = currentUserId ? JSON.parse(localStorage.getItem("user_" + currentUserId)) : null;
     const authBox = document.getElementById('auth-actions');
@@ -80,7 +91,7 @@
     if (user) {
       authBox.innerHTML = `
         <span style="color:white;">🌿 ${user.nickname} (${user.role})님</span>
-        <button onclick="logout()" style="margin-left: 12px; background: white; color: #2f80ed; border: none; border-radius: 6px; padding: 6px 12px; cursor: pointer;">
+        <button type="button" onclick="logout()" style="margin-left: 12px; background: white; color: #2f80ed; border: none; border-radius: 6px; padding: 6px 12px;">
           로그아웃
         </button>
       `;
@@ -132,22 +143,22 @@
       document.getElementById('auth-modal').style.display = 'none';
     }
 
-    function enterAdminMode() {
-      const code = prompt("관리자 코드를 입력하세요");
-      if (code === "0109") {
-        alert("관리자 모드가 활성화되었습니다.");
-        sessionStorage.setItem("isAdmin", "true");
-        isAdmin = true;
-      } else {
-        alert("관리자 코드가 올바르지 않습니다.");
-      }
-    }
-
     function logout() {
       sessionStorage.removeItem("currentUser");
       sessionStorage.removeItem("isAdmin");
       alert("로그아웃 되었습니다.");
       location.href = "hastati.html";
+    }
+
+    function enterAdminMode() {
+      const code = prompt("관리자 코드를 입력하세요");
+      if (code === "0109") {
+        alert("관리자 모드가 활성화되었습니다.");
+        sessionStorage.setItem("isAdmin", "true");
+        showPendingUsers();
+      } else {
+        alert("관리자 코드가 올바르지 않습니다.");
+      }
     }
 
     function requireLogin(target) {
@@ -167,6 +178,53 @@
 
       location.href = target;
     }
+
+    function showPendingUsers() {
+      if (sessionStorage.getItem("isAdmin") !== "true") return;
+
+      const pendingBox = document.getElementById("pending-users");
+      const panel = document.getElementById("admin-panel");
+      pendingBox.innerHTML = '';
+      panel.style.display = "block";
+
+      for (let key in localStorage) {
+        if (key.startsWith("user_")) {
+          const user = JSON.parse(localStorage.getItem(key));
+          if (user.status === "pending") {
+            const div = document.createElement("div");
+            div.style.marginBottom = "12px";
+            div.innerHTML = `
+              🌱 <strong>${user.nickname}</strong> (${user.id}, ${user.role})<br/>
+              <button onclick="approveUser('${user.id}')">✅ 승인</button>
+              <button onclick="rejectUser('${user.id}')">❌ 거절</button>
+            `;
+            pendingBox.appendChild(div);
+          }
+        }
+      }
+    }
+
+    function approveUser(id) {
+      const user = JSON.parse(localStorage.getItem("user_" + id));
+      user.status = "approved";
+      localStorage.setItem("user_" + id, JSON.stringify(user));
+      alert(`${user.nickname} 승인 완료`);
+      showPendingUsers();
+    }
+
+    function rejectUser(id) {
+      if (!confirm("정말 거절하시겠습니까?")) return;
+      localStorage.removeItem("user_" + id);
+      alert("거절 및 삭제 완료");
+      showPendingUsers();
+    }
+
+    // 페이지 로드시 관리자면 자동으로 승인 목록 표시
+    window.onload = () => {
+      if (sessionStorage.getItem("isAdmin") === "true") {
+        showPendingUsers();
+      }
+    };
   </script>
 </body>
 </html>
