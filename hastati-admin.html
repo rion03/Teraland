@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <title>하스타티 관리자 페이지</title>
+  <style>
+    body { font-family: Pretendard, sans-serif; background: #f5f6fa; padding: 40px; }
+    main { max-width: 800px; margin: auto; background: white; padding: 40px; border-radius: 12px;
+           box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+    h2 { color: #2f80ed; }
+    ul { list-style: none; padding: 0; }
+    li {
+      background: #eef1f5; padding: 12px; border-radius: 6px; margin: 10px 0;
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    span { font-size: 14px; }
+    .btns button {
+      margin-left: 8px; background: #2f80ed; color: white;
+      border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer;
+    }
+    .btns button.reject { background: #ccc; color: #333; }
+  </style>
+</head>
+<body>
+<main>
+  <h2>일정 신청 승인 / 거절</h2>
+  <ul id="pending-list"></ul>
+</main>
+
+<script>
+  const isAdmin = sessionStorage.getItem("isAdmin") === "true";
+  const userId = sessionStorage.getItem("currentUser");
+  const user = userId ? JSON.parse(localStorage.getItem("user_" + userId)) : null;
+
+  if (!isAdmin && (!user || user.role !== "하스타티")) {
+    alert("관리자 권한이 필요합니다.");
+    location.href = "hastati.html";
+  }
+
+  function loadPending() {
+    const list = document.getElementById("pending-list");
+    list.innerHTML = "";
+
+    const entries = [];
+
+    for (let key in localStorage) {
+      if (key.startsWith("schedule_pending_")) {
+        const item = JSON.parse(localStorage.getItem(key));
+        entries.push({ key, ...item });
+      }
+    }
+
+    // 날짜순 정렬
+    entries.sort((a, b) => a.date.localeCompare(b.date));
+
+    entries.forEach(item => {
+      const li = document.createElement("li");
+      li.innerHTML = `
+        <span>📅 ${item.date} ${item.start} ~ ${item.end} - ${item.nickname}</span>
+        <div class="btns">
+          <button onclick="approve('${item.key}')">승인</button>
+          <button class="reject" onclick="reject('${item.key}')">거절</button>
+        </div>
+      `;
+      list.appendChild(li);
+    });
+  }
+
+  function approve(key) {
+    const item = JSON.parse(localStorage.getItem(key));
+    const approvedKey = "schedule_approved_" + Date.now();
+    localStorage.setItem(approvedKey, JSON.stringify(item));
+    localStorage.removeItem(key);
+    alert("승인 완료");
+    loadPending();
+  }
+
+  function reject(key) {
+    if (!confirm("정말 이 신청을 거절하시겠습니까?")) return;
+    localStorage.removeItem(key);
+    alert("거절 처리되었습니다.");
+    loadPending();
+  }
+
+  loadPending();
+</script>
+</body>
+</html>
+

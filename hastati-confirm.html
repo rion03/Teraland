@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <title>하스타티 확정 스케줄표</title>
+  <style>
+    body { font-family: Pretendard, sans-serif; background: #f5f6fa; padding: 40px; }
+    main { max-width: 1000px; margin: auto; background: white; padding: 40px;
+           border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+    h2 { color: #2f80ed; margin-bottom: 10px; }
+    label { font-weight: bold; margin-right: 10px; }
+    select { padding: 8px 12px; margin-bottom: 20px; }
+    table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+    th, td {
+      border: 1px solid #ccc; padding: 8px; text-align: center;
+      font-size: 13px; word-break: break-word;
+    }
+    th { background: #e8f0ff; }
+    td { min-height: 40px; position: relative; }
+    .remove-btn {
+      position: absolute; bottom: 2px; right: 4px;
+      font-size: 10px; background: red; color: white;
+      border: none; padding: 2px 4px; border-radius: 4px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+<main>
+  <h2>하스타티 확정 스케줄표</h2>
+  <label for="week-select">📅 주차 선택:</label>
+  <select id="week-select"></select>
+  <table>
+    <thead>
+      <tr>
+        <th>시간</th>
+        <th>월</th>
+        <th>화</th>
+        <th>수</th>
+        <th>목</th>
+        <th>금</th>
+        <th>토</th>
+        <th>일</th>
+      </tr>
+    </thead>
+    <tbody id="schedule-body"></tbody>
+  </table>
+</main>
+
+<script>
+  const isAdmin = sessionStorage.getItem("isAdmin") === "true";
+  const userId = sessionStorage.getItem("currentUser");
+  const user = userId ? JSON.parse(localStorage.getItem("user_" + userId)) : null;
+
+  if (!user && !isAdmin) {
+    alert("로그인이 필요합니다.");
+    location.href = "hastati.html";
+  }
+
+  const weekSelect = document.getElementById("week-select");
+
+  function getMonday(date) {
+    const d = new Date(date);
+    const day = d.getDay();
+    const diff = (day === 0 ? -6 : 1) - day;
+    d.setDate(d.getDate() + diff);
+    d.setHours(0,0,0,0);
+    return d;
+  }
+
+  function getWeekNumber(d) {
+    const date = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    const firstDay = new Date(date.getFullYear(), date.getMonth(), 1);
+    const firstMonday = getMonday(firstDay);
+    const diffDays = Math.floor((date - firstMonday) / (1000 * 60 * 60 * 24));
+    return Math.floor(diffDays / 7) + 1;
+  }
+
+  function getWeekDates(startDate) {
+    const dates = [];
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(startDate);
+      d.setDate(startDate.getDate() + i);
+      dates.push(d.toISOString().split("T")[0]);
+    }
+    return dates;
+  }
+
+  function populateWeekOptions() {
+    const now = new Date();
+    const baseMonday = getMonday(now);
+
+    for (let i = -1; i <= 2; i++) {
+      const weekMonday = new Date(baseMonday);
+      weekMonday.setDate(baseMonday.getDate() + i * 7);
+      const weekNum = getWeekNumber(weekMonday);
+      const month = weekMonday.getMonth() + 1;
+      const label = `${month}월 ${weekNum}주차`;
+      const value = weekMonday.toISOString().split("T")[0];
+      const opt = new Option(label, value);
+      if (i === 0) opt.selected = true;
+      weekSelect.appendChild(opt);
+    }
+  }
+
+  function deleteSchedule(key) {
+    if (!confirm("이 일정을 삭제하시겠습니까?")) return;
+    localStorage.removeItem(key);
+    alert("일정이 삭제되었습니다.");
+    renderSchedule();
+  }
+
+  function renderSchedule() {
+    const selected = weekSelect.value;
+    const monday = new Date(selected);
+    const weekDates = getWeekDates(monday);
+    const scheduleMap = {};
+    const scheduleKeys = {};
+
+    for (let h = 0; h < 24; h++) {
+      const hour = h.toString().padStart(2, '0') + ":00";
+      scheduleMap[hour] = {};
+      scheduleKeys[hour] = {};
+      weekDates.forEach(date => {
+        scheduleMap[hour][date] = "";
+        scheduleKeys[hour][date] = [];
+      });
+    }
+
+    for (let key in localStorage) {
+      if (key.startsWith("schedule_approved_")) {
+        const s = JSON.parse(localStorage.getItem(key));
+        if (!weekDates.includes(s.date)) continue;
+        const startHour = parseInt(s.start.split(":")[0]);
+        const endHour = parseInt(s.end.split(":")[0]);
+        const date = s.date;
+
+        for (let h = startHour; h < endHour; h++) {
+          const hourKey = h.toString().padStart(2, '0') + ":00";
+          if (scheduleMap[hourKey][date]) {
+            scheduleMap[hourKey][date] += ` / ${s.nickname}`;
+          } else {
+            scheduleMap[hourKey][date] = s.nickname;
+          }
+          scheduleKeys[hourKey][date].push(key);
+        }
+      }
+    }
+
+    const tbody = document.getElementById("schedule-body");
+    tbody.innerHTML = "";
+    for (let h = 0; h < 24; h++) {
+      const hour = h.toString().padStart(2, '0') + ":00";
+      const row = document.createElement("tr");
+      row.innerHTML = `<th>${hour}</th>`;
+      weekDates.forEach(date => {
+        const td = document.createElement("td");
+        td.textContent = scheduleMap[hour][date] || "";
+        if (isAdmin && scheduleKeys[hour][date].length > 0) {
+          const btn = document.createElement("button");
+          btn.textContent = "삭제";
+          btn.className = "remove-btn";
+          btn.onclick = () => deleteSchedule(scheduleKeys[hour][date][0]);
+          td.appendChild(btn);
+        }
+        row.appendChild(td);
+      });
+      tbody.appendChild(row);
+    }
+  }
+
+  weekSelect.addEventListener("change", renderSchedule);
+  populateWeekOptions();
+  renderSchedule();
+</script>
+</body>
+</html>

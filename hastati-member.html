@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <title>일정 신청 - 하스타티</title>
+  <style>
+    body { font-family: Pretendard, sans-serif; margin: 0; padding: 40px; background: #f5f6fa; }
+    main { max-width: 600px; margin: auto; background: white; padding: 40px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+    h2 { color: #2f80ed; }
+    input, select, button {
+      width: 100%; padding: 10px; margin: 10px 0;
+      border: 1px solid #ccc; border-radius: 6px;
+    }
+    button {
+      background: #2f80ed; color: white; font-weight: bold;
+      border: none; cursor: pointer;
+    }
+    ul { list-style: none; padding: 0; margin-top: 20px; }
+    li {
+      background: #f1f4f8; padding: 10px; margin-bottom: 10px;
+      border-radius: 6px; font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+<main>
+  <h2>하스타티 일정표 신청</h2>
+
+  <label>날짜 선택</label>
+  <input type="date" id="date">
+
+  <label>시작 시간</label>
+  <select id="start"></select>
+
+  <label>종료 시간</label>
+  <select id="end"></select>
+
+  <button onclick="submitSchedule()">신청하기</button>
+
+  <h3 style="margin-top: 40px;">내 신청 내역</h3>
+  <ul id="my-list"></ul>
+</main>
+
+<script>
+  const userId = sessionStorage.getItem("currentUser");
+  const user = userId ? JSON.parse(localStorage.getItem("user_" + userId)) : null;
+
+  if (!user || user.status !== "approved") {
+    alert("로그인이 필요합니다.");
+    location.href = "hastati.html";
+  }
+
+  function fillTimes() {
+    for (let h = 0; h < 24; h++) {
+      const time = h.toString().padStart(2, '0') + ":00";
+      const opt1 = new Option(time, time);
+      const opt2 = new Option(time, time);
+      document.getElementById("start").appendChild(opt1);
+      document.getElementById("end").appendChild(opt2);
+    }
+  }
+
+  function submitSchedule() {
+    const date = document.getElementById("date").value;
+    const start = document.getElementById("start").value;
+    const end = document.getElementById("end").value;
+
+    if (!date || !start || !end || start >= end) {
+      alert("모든 항목을 정확히 입력해주세요.");
+      return;
+    }
+
+    const key = "schedule_pending_" + Date.now();
+    const item = { nickname: user.nickname, userId, date, start, end };
+    localStorage.setItem(key, JSON.stringify(item));
+    alert("일정 신청이 완료되었습니다. 관리자 승인을 기다려주세요.");
+    loadMyList();
+  }
+
+  function loadMyList() {
+    const list = document.getElementById("my-list");
+    list.innerHTML = "";
+
+    const myItems = [];
+
+    for (let key in localStorage) {
+      if (key.startsWith("schedule_pending_")) {
+        const item = JSON.parse(localStorage.getItem(key));
+        if (item.userId === userId) {
+          myItems.push(item);
+        }
+      }
+    }
+
+    myItems.sort((a, b) => a.date.localeCompare(b.date));
+    myItems.forEach(item => {
+      const li = document.createElement("li");
+      li.textContent = `${item.date} ${item.start} ~ ${item.end}`;
+      list.appendChild(li);
+    });
+  }
+
+  fillTimes();
+  loadMyList();
+</script>
+</body>
+</html>
