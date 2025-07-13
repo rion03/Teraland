@@ -2,88 +2,126 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8" />
-  <title>하스타티 관리자 페이지</title>
+  <title>관리자 페이지</title>
   <style>
     body { font-family: Pretendard, sans-serif; background: #f5f6fa; padding: 40px; }
-    main { max-width: 800px; margin: auto; background: white; padding: 40px; border-radius: 12px;
-           box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
     h2 { color: #2f80ed; }
-    ul { list-style: none; padding: 0; }
-    li {
-      background: #eef1f5; padding: 12px; border-radius: 6px; margin: 10px 0;
-      display: flex; justify-content: space-between; align-items: center;
+    .section {
+      background: white; padding: 20px; margin-bottom: 32px;
+      border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.1);
     }
-    span { font-size: 14px; }
-    .btns button {
-      margin-left: 8px; background: #2f80ed; color: white;
-      border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer;
+    .entry {
+      border-bottom: 1px solid #ddd; padding: 12px 0;
     }
-    .btns button.reject { background: #ccc; color: #333; }
+    button {
+      margin-right: 8px; padding: 6px 12px;
+      border: none; border-radius: 6px; cursor: pointer;
+      font-weight: bold;
+    }
+    .approve { background: #2ecc71; color: white; }
+    .reject { background: #e74c3c; color: white; }
   </style>
 </head>
 <body>
-<main>
-  <h2>일정 신청 승인 / 거절</h2>
-  <ul id="pending-list"></ul>
-</main>
 
-<script>
-  const isAdmin = sessionStorage.getItem("isAdmin") === "true";
-  const userId = sessionStorage.getItem("currentUser");
-  const user = userId ? JSON.parse(localStorage.getItem("user_" + userId)) : null;
+  <h2>🌿 관리자 페이지</h2>
 
-  if (!isAdmin && (!user || user.role !== "하스타티")) {
-    alert("관리자 권한이 필요합니다.");
-    location.href = "hastati.html";
-  }
+  <!-- 회원가입 승인/거절 -->
+  <div class="section">
+    <h3>회원가입 승인 대기자</h3>
+    <div id="signup-list"></div>
+  </div>
 
-  function loadPending() {
-    const list = document.getElementById("pending-list");
-    list.innerHTML = "";
+  <!-- 일정 신청 승인/거절 -->
+  <div class="section">
+    <h3>일정 신청 목록</h3>
+    <div id="schedule-list"></div>
+  </div>
 
-    const entries = [];
+  <script>
+    function loadSignupList() {
+      const container = document.getElementById('signup-list');
+      container.innerHTML = '';
 
-    for (let key in localStorage) {
-      if (key.startsWith("schedule_pending_")) {
-        const item = JSON.parse(localStorage.getItem(key));
-        entries.push({ key, ...item });
+      for (let key in localStorage) {
+        if (key.startsWith("user_")) {
+          const user = JSON.parse(localStorage.getItem(key));
+          if (user.status === "pending") {
+            const div = document.createElement("div");
+            div.className = "entry";
+            div.innerHTML = `
+              <strong>${user.nickname}</strong> (${user.id}, ${user.role})
+              <br/>
+              <button class="approve" onclick="approveUser('${user.id}')">✅ 승인</button>
+              <button class="reject" onclick="rejectUser('${user.id}')">❌ 거절</button>
+            `;
+            container.appendChild(div);
+          }
+        }
       }
     }
 
-    // 날짜순 정렬
-    entries.sort((a, b) => a.date.localeCompare(b.date));
+    function loadScheduleList() {
+      const container = document.getElementById('schedule-list');
+      container.innerHTML = '';
 
-    entries.forEach(item => {
-      const li = document.createElement("li");
-      li.innerHTML = `
-        <span>📅 ${item.date} ${item.start} ~ ${item.end} - ${item.nickname}</span>
-        <div class="btns">
-          <button onclick="approve('${item.key}')">승인</button>
-          <button class="reject" onclick="reject('${item.key}')">거절</button>
-        </div>
-      `;
-      list.appendChild(li);
-    });
-  }
+      for (let key in localStorage) {
+        if (key.startsWith("schedule_")) {
+          const item = JSON.parse(localStorage.getItem(key));
+          if (item.status === "pending") {
+            const div = document.createElement("div");
+            div.className = "entry";
+            div.innerHTML = `
+              <strong>${item.user}</strong> - ${item.date} ${item.time}
+              <br/>
+              <button class="approve" onclick="approveSchedule('${key}')">✅ 승인</button>
+              <button class="reject" onclick="rejectSchedule('${key}')">❌ 거절</button>
+            `;
+            container.appendChild(div);
+          }
+        }
+      }
+    }
 
-  function approve(key) {
-    const item = JSON.parse(localStorage.getItem(key));
-    const approvedKey = "schedule_approved_" + Date.now();
-    localStorage.setItem(approvedKey, JSON.stringify(item));
-    localStorage.removeItem(key);
-    alert("승인 완료");
-    loadPending();
-  }
+    function approveUser(id) {
+      const user = JSON.parse(localStorage.getItem("user_" + id));
+      user.status = "approved";
+      localStorage.setItem("user_" + id, JSON.stringify(user));
+      alert(`${user.nickname} 승인 완료`);
+      loadSignupList();
+    }
 
-  function reject(key) {
-    if (!confirm("정말 이 신청을 거절하시겠습니까?")) return;
-    localStorage.removeItem(key);
-    alert("거절 처리되었습니다.");
-    loadPending();
-  }
+    function rejectUser(id) {
+      if (!confirm("정말로 거절하시겠습니까?")) return;
+      localStorage.removeItem("user_" + id);
+      alert("사용자 삭제 완료");
+      loadSignupList();
+    }
 
-  loadPending();
-</script>
+    function approveSchedule(key) {
+      const item = JSON.parse(localStorage.getItem(key));
+      item.status = "approved";
+      localStorage.setItem(key, JSON.stringify(item));
+      alert("일정 승인 완료");
+      loadScheduleList();
+    }
+
+    function rejectSchedule(key) {
+      if (!confirm("이 일정을 거절하시겠습니까?")) return;
+      localStorage.removeItem(key);
+      alert("일정 거절 및 삭제 완료");
+      loadScheduleList();
+    }
+
+    window.onload = () => {
+      if (sessionStorage.getItem("isAdmin") !== "true") {
+        alert("관리자 권한이 없습니다.");
+        location.href = "hastati.html";
+        return;
+      }
+      loadSignupList();
+      loadScheduleList();
+    };
+  </script>
 </body>
 </html>
-
