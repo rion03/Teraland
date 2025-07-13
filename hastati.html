@@ -1,9 +1,8 @@
-TYPE html>
+<!DOCTYPE html>
 <html lang="ko">
 <head>
   <meta charset="UTF-8" />
   <meta http-equiv="refresh" content="0; url=hastati.html">
-
   <title>하스타티 메인</title>
   <style>
     body { margin: 0; font-family: Pretendard, sans-serif; background: #f5f6fa; }
@@ -78,12 +77,12 @@ TYPE html>
     const authBox = document.getElementById('auth-actions');
 
     if (user) {
-      authBox.innerHTML = 
+      authBox.innerHTML = `
         <span style="color:white;">🌿 ${user.nickname} (${user.role})님</span>
         <button onclick="logout()" style="margin-left: 12px; background: white; color: #2f80ed; border: none; border-radius: 6px; padding: 6px 12px; cursor: pointer;">
           로그아웃
         </button>
-      ;
+      `;
     }
 
     function toggleLogin() {
@@ -111,27 +110,26 @@ TYPE html>
     }
 
     function handleRegister() {
-  const id = document.getElementById('reg-id').value.trim();
-  const pw = document.getElementById('reg-pw').value.trim();
-  const nick = document.getElementById('reg-nick').value.trim();
-  const role = document.getElementById('reg-role').value;
+      const id = document.getElementById('reg-id').value.trim();
+      const pw = document.getElementById('reg-pw').value.trim();
+      const nick = document.getElementById('reg-nick').value.trim();
+      const role = document.getElementById('reg-role').value;
 
-  const idValid = /^[a-zA-Z0-9]{6,}$/.test(id);
-  const pwValid = /^(?=.*[A-Za-z])(?=.*[0-9])(?=.*[!@#$%^&*()_+\\-=\\[\\]{};':"\\\\|,.<>\\/?]).{6,}$/.test(pw);
+      const idValid = /^[a-zA-Z0-9]{6,}$/.test(id);
+      const pwValid = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[\W_]).{6,}$/.test(pw);
 
-  if (!idValid) return alert("아이디는 영문+숫자 6자 이상이어야 합니다.");
-  if (!pwValid) return alert("비밀번호는 영어 + 숫자 + 특수기호 포함 6자 이상이어야 합니다.");
-  if (!nick) return alert("닉네임을 입력해주세요.");
-  if (!['하스타티','레가투스','헤나'].includes(role)) return alert("소속을 선택해주세요.");
-  if (localStorage.getItem("user_" + id)) return alert("이미 존재하는 아이디입니다.");
+      if (!idValid) return alert("아이디는 영문+숫자 6자 이상이어야 합니다.");
+      if (!pwValid) return alert("비밀번호는 영어 + 숫자 + 특수기호 포함 6자 이상이어야 합니다.");
+      if (!nick) return alert("닉네임을 입력해주세요.");
+      if (!['하스타티','레가투스','헤나'].includes(role)) return alert("소속을 선택해주세요.");
+      if (localStorage.getItem("user_" + id)) return alert("이미 존재하는 아이디입니다.");
 
-  localStorage.setItem("user_" + id, JSON.stringify({
-    id, pw, nickname: nick, role, status: "pending"
-  }));
-  alert("회원가입 완료! 관리자 승인 후 로그인 가능합니다.");
-  document.getElementById('auth-modal').style.display = 'none';
-}
-
+      localStorage.setItem("user_" + id, JSON.stringify({
+        id, pw, nickname: nick, role, status: "pending"
+      }));
+      alert("회원가입 완료! 관리자 승인 후 로그인 가능합니다.");
+      document.getElementById('auth-modal').style.display = 'none';
+    }
 
     function enterAdminMode() {
       const code = prompt("관리자 코드를 입력하세요");
