@@ -111,19 +111,27 @@
     }
 
     function handleRegister() {
-      const id = document.getElementById('reg-id').value.trim();
-      const pw = document.getElementById('reg-pw').value.trim();
-      const nick = document.getElementById('reg-nick').value.trim();
-      const role = document.getElementById('reg-role').value;
-      if (!/^[a-zA-Z0-9]{6,}$/.test(id)) return alert("아이디는 영문+숫자 6자 이상이어야 합니다.");
-      if (!/^(?=.*[a-zA-Z])(?=.*\\d)(?=.*\\W).{6,}$/.test(pw)) return alert("비밀번호는 조건을 만족해야 합니다.");
-      if (!nick) return alert("닉네임을 입력해주세요.");
-      if (!['하스타티','레가투스','헤나'].includes(role)) return alert("소속을 선택해주세요.");
-      if (localStorage.getItem("user_" + id)) return alert("이미 존재하는 아이디입니다.");
-      localStorage.setItem("user_" + id, JSON.stringify({ id, pw, nickname: nick, role, status: "pending" }));
-      alert("회원가입 완료! 관리자 승인 후 로그인 가능합니다.");
-      document.getElementById('auth-modal').style.display = 'none';
-    }
+  const id = document.getElementById('reg-id').value.trim();
+  const pw = document.getElementById('reg-pw').value.trim();
+  const nick = document.getElementById('reg-nick').value.trim();
+  const role = document.getElementById('reg-role').value;
+
+  const idValid = /^[a-zA-Z0-9]{6,}$/.test(id);
+  const pwValid = /^(?=.*[A-Za-z])(?=.*[0-9])(?=.*[!@#$%^&*()_+\\-=\\[\\]{};':"\\\\|,.<>\\/?]).{6,}$/.test(pw);
+
+  if (!idValid) return alert("아이디는 영문+숫자 6자 이상이어야 합니다.");
+  if (!pwValid) return alert("비밀번호는 영어 + 숫자 + 특수기호 포함 6자 이상이어야 합니다.");
+  if (!nick) return alert("닉네임을 입력해주세요.");
+  if (!['하스타티','레가투스','헤나'].includes(role)) return alert("소속을 선택해주세요.");
+  if (localStorage.getItem("user_" + id)) return alert("이미 존재하는 아이디입니다.");
+
+  localStorage.setItem("user_" + id, JSON.stringify({
+    id, pw, nickname: nick, role, status: "pending"
+  }));
+  alert("회원가입 완료! 관리자 승인 후 로그인 가능합니다.");
+  document.getElementById('auth-modal').style.display = 'none';
+}
+
 
     function enterAdminMode() {
       const code = prompt("관리자 코드를 입력하세요");
