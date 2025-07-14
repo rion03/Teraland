@@ -8,6 +8,8 @@
     main { max-width: 1000px; margin: auto; background: white; padding: 40px;
            border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
     h2 { color: #2f80ed; margin-bottom: 10px; }
+    label { font-weight: bold; margin-right: 10px; }
+    select { padding: 8px 12px; margin-bottom: 20px; }
     table { width: 100%; border-collapse: collapse; table-layout: fixed; }
     th, td {
       border: 1px solid #ccc; padding: 8px; text-align: center;
@@ -25,7 +27,9 @@
 </head>
 <body>
 <main>
-  <h2>하스타티 확정 스케줄표 (이번 주)</h2>
+  <h2>하스타티 확정 스케줄표</h2>
+  <label for="week-select">📅 주차 선택:</label>
+  <select id="week-select"></select>
   <table>
     <thead>
       <tr>
@@ -42,22 +46,34 @@
     <tbody id="schedule-body"></tbody>
   </table>
 </main>
+
 <script>
   const isAdmin = sessionStorage.getItem("isAdmin") === "true";
   const userId = sessionStorage.getItem("currentUser");
   const user = userId ? JSON.parse(localStorage.getItem("user_" + userId)) : null;
+
   if (!user && !isAdmin) {
     alert("로그인이 필요합니다.");
     location.href = "hastati.html";
   }
+
+  const weekSelect = document.getElementById("week-select");
 
   function getMonday(date) {
     const d = new Date(date);
     const day = d.getDay();
     const diff = (day === 0 ? -6 : 1) - day;
     d.setDate(d.getDate() + diff);
-    d.setHours(0, 0, 0, 0);
+    d.setHours(0,0,0,0);
     return d;
+  }
+
+  function getWeekNumber(d) {
+    const date = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    const firstDay = new Date(date.getFullYear(), date.getMonth(), 1);
+    const firstMonday = getMonday(firstDay);
+    const diffDays = Math.floor((date - firstMonday) / (1000 * 60 * 60 * 24));
+    return Math.floor(diffDays / 7) + 1;
   }
 
   function getWeekDates(startDate) {
@@ -70,6 +86,23 @@
     return dates;
   }
 
+  function populateWeekOptions() {
+    const now = new Date();
+    const baseMonday = getMonday(now);
+
+    for (let i = -1; i <= 2; i++) {
+      const weekMonday = new Date(baseMonday);
+      weekMonday.setDate(baseMonday.getDate() + i * 7);
+      const weekNum = getWeekNumber(weekMonday);
+      const month = weekMonday.getMonth() + 1;
+      const label = `${month}월 ${weekNum}주차`;
+      const value = weekMonday.toISOString().split("T")[0];
+      const opt = new Option(label, value);
+      if (i === 0) opt.selected = true;
+      weekSelect.appendChild(opt);
+    }
+  }
+
   function deleteSchedule(key) {
     if (!confirm("이 일정을 삭제하시겠습니까?")) return;
     localStorage.removeItem(key);
@@ -78,7 +111,8 @@
   }
 
   function renderSchedule() {
-    const monday = getMonday(new Date());
+    const selected = weekSelect.value;
+    const monday = new Date(selected);
     const weekDates = getWeekDates(monday);
     const scheduleMap = {};
     const scheduleKeys = {};
@@ -95,25 +129,20 @@
 
     for (let key in localStorage) {
       if (key.startsWith("schedule_approved_")) {
-        try {
-          const s = JSON.parse(localStorage.getItem(key));
-          const scheduleDate = new Date(s.date).toISOString().split("T")[0];
-          if (!weekDates.includes(scheduleDate)) continue;
+        const s = JSON.parse(localStorage.getItem(key));
+        if (!weekDates.includes(s.date)) continue;
+        const startHour = parseInt(s.start.split(":")[0]);
+        const endHour = parseInt(s.end.split(":")[0]);
+        const date = s.date;
 
-          const startHour = parseInt(s.start.split(":")[0]);
-          const endHour = parseInt(s.end.split(":")[0]);
-
-          for (let h = startHour; h < endHour; h++) {
-            const hourKey = h.toString().padStart(2, '0') + ":00";
-            if (scheduleMap[hourKey][scheduleDate]) {
-              scheduleMap[hourKey][scheduleDate] += ` / ${s.nickname}`;
-            } else {
-              scheduleMap[hourKey][scheduleDate] = s.nickname;
-            }
-            scheduleKeys[hourKey][scheduleDate].push(key);
+        for (let h = startHour; h < endHour; h++) {
+          const hourKey = h.toString().padStart(2, '0') + ":00";
+          if (scheduleMap[hourKey][date]) {
+            scheduleMap[hourKey][date] += ` / ${s.nickname}`;
+          } else {
+            scheduleMap[hourKey][date] = s.nickname;
           }
-        } catch (e) {
-          console.error("JSON 파싱 오류:", key, e);
+          scheduleKeys[hourKey][date].push(key);
         }
       }
     }
@@ -140,6 +169,8 @@
     }
   }
 
+  weekSelect.addEventListener("change", renderSchedule);
+  populateWeekOptions();
   renderSchedule();
 </script>
 </body>
