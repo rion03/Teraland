@@ -124,12 +124,14 @@
 
     window.onload = () => {
       const userId = sessionStorage.getItem("currentUser");
-      const user = userId ? JSON.parse(localStorage.getItem("user_" + userId)) : null;
-      if (!user || user.role !== "헤나") {
+      const isAdmin = sessionStorage.getItem("isAdmin") === "true";
+
+      if (!userId || !isAdmin) {
         alert("관리자 권한이 없습니다. 관리자 로그인이 필요합니다.");
         window.location.href = "hastati.html";
         return;
       }
+
       loadSignupList();
       loadScheduleList();
     };
