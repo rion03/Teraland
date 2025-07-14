@@ -45,13 +45,12 @@
 <script>
   const userId = sessionStorage.getItem("currentUser");
   const user = userId ? JSON.parse(localStorage.getItem("user_" + userId)) : null;
-
   if (!user) {
     alert("로그인이 필요합니다.");
     location.href = "hastati.html";
   }
 
-  const isAdmin = sessionStorage.getItem("isAdmin") === "true";
+  const isAdmin = (user && user.role === "헤나");
 
   function getMonday(date) {
     const d = new Date(date);
@@ -146,4 +145,3 @@
 </script>
 </body>
 </html>
-
