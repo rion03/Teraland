@@ -126,8 +126,8 @@
       const userId = sessionStorage.getItem("currentUser");
       const user = userId ? JSON.parse(localStorage.getItem("user_" + userId)) : null;
       if (!user || user.role !== "헤나") {
-        alert("관리자 권한이 없습니다.");
-        location.href = "hastati.html";
+        alert("관리자 권한이 없습니다. 관리자 로그인이 필요합니다.");
+        window.location.href = "hastati.html";
         return;
       }
       loadSignupList();
