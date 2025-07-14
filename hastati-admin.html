@@ -141,8 +141,11 @@
 
     function confirmAdmin() {
       const code = document.getElementById("admin-code").value;
-      if (code === "admin123") {
+      if (code === "0109") {
         sessionStorage.setItem("isAdmin", "true");
+        if (!sessionStorage.getItem("currentUser")) {
+          sessionStorage.setItem("currentUser", "admin_temp");
+        }
         alert("관리자 모드로 전환되었습니다.");
         location.reload();
       } else {
@@ -154,18 +157,15 @@
       const userId = sessionStorage.getItem("currentUser");
       const isAdmin = sessionStorage.getItem("isAdmin") === "true";
 
-      if (!userId) {
-        alert("로그인이 필요합니다.");
-        window.location.href = "hastati.html";
-        return;
-      }
-
       if (!isAdmin) {
         document.getElementById("admin-login-panel").style.display = "block";
         return;
       }
 
-      // 관리자 인증 완료 → 목록 표시
+      if (!userId) {
+        sessionStorage.setItem("currentUser", "admin_temp");
+      }
+
       loadSignupList();
       loadScheduleList();
     };
