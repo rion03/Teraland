@@ -66,22 +66,17 @@
       container.innerHTML = '';
 
       for (let key in localStorage) {
-        if (key.startsWith("schedule_")) {
+        if (key.startsWith("schedule_pending_")) {
           const item = JSON.parse(localStorage.getItem(key));
-          const status = item.status || "pending";
-          if (status === "pending") {
-            const div = document.createElement("div");
-            div.className = "entry";
-            const time = item.time || `${item.start || "?"}~${item.end || "?"}`;
-            const user = item.user || item.nickname || "사용자";
-            div.innerHTML = `
-              <strong>${user}</strong> - ${item.date} ${time}
-              <br/>
-              <button class="approve" onclick="approveSchedule('${key}')">✅ 승인</button>
-              <button class="reject" onclick="rejectSchedule('${key}')">❌ 거절</button>
-            `;
-            container.appendChild(div);
-          }
+          const div = document.createElement("div");
+          div.className = "entry";
+          div.innerHTML = `
+            <strong>${item.nickname}</strong> - ${item.date} ${item.start} ~ ${item.end}
+            <br/>
+            <button class="approve" onclick="approveSchedule('${key}')">✅ 승인</button>
+            <button class="reject" onclick="rejectSchedule('${key}')">❌ 거절</button>
+          `;
+          container.appendChild(div);
         }
       }
     }
@@ -103,8 +98,17 @@
 
     function approveSchedule(key) {
       const item = JSON.parse(localStorage.getItem(key));
-      item.status = "approved";
-      localStorage.setItem(key, JSON.stringify(item));
+      localStorage.removeItem(key);
+
+      const approvedKey = "schedule_approved_" + Date.now();
+      localStorage.setItem(approvedKey, JSON.stringify({
+        id: item.id,
+        nickname: item.nickname,
+        date: item.date,
+        start: item.start,
+        end: item.end
+      }));
+
       alert("일정 승인 완료");
       loadScheduleList();
     }
@@ -117,7 +121,9 @@
     }
 
     window.onload = () => {
-      if (sessionStorage.getItem("isAdmin") !== "true") {
+      const userId = sessionStorage.getItem("currentUser");
+      const user = userId ? JSON.parse(localStorage.getItem("user_" + userId)) : null;
+      if (!user || user.role !== "헤나") {
         alert("관리자 권한이 없습니다.");
         location.href = "hastati.html";
         return;
