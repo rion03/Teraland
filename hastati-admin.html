@@ -20,11 +20,28 @@
     }
     .approve { background: #2ecc71; color: white; }
     .reject { background: #e74c3c; color: white; }
+    .admin-login {
+      margin-bottom: 30px;
+      background: #fff3cd;
+      padding: 16px;
+      border-radius: 8px;
+    }
+    input[type="password"] {
+      padding: 6px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+    }
   </style>
 </head>
 <body>
 
   <h2>🌿 관리자 페이지</h2>
+
+  <!-- 관리자 로그인 패널 -->
+  <div class="admin-login" id="admin-login-panel" style="display: none;">
+    <label>관리자 코드 입력: <input type="password" id="admin-code" /></label>
+    <button onclick="confirmAdmin()">관리자 로그인</button>
+  </div>
 
   <!-- 회원가입 승인/거절 -->
   <div class="section">
@@ -122,16 +139,33 @@
       loadScheduleList();
     }
 
+    function confirmAdmin() {
+      const code = document.getElementById("admin-code").value;
+      if (code === "admin123") {
+        sessionStorage.setItem("isAdmin", "true");
+        alert("관리자 모드로 전환되었습니다.");
+        location.reload();
+      } else {
+        alert("잘못된 관리자 코드입니다.");
+      }
+    }
+
     window.onload = () => {
       const userId = sessionStorage.getItem("currentUser");
       const isAdmin = sessionStorage.getItem("isAdmin") === "true";
 
-      if (!userId || !isAdmin) {
-        alert("관리자 권한이 없습니다. 관리자 로그인이 필요합니다.");
+      if (!userId) {
+        alert("로그인이 필요합니다.");
         window.location.href = "hastati.html";
         return;
       }
 
+      if (!isAdmin) {
+        document.getElementById("admin-login-panel").style.display = "block";
+        return;
+      }
+
+      // 관리자 인증 완료 → 목록 표시
       loadSignupList();
       loadScheduleList();
     };
