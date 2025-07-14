@@ -2,6 +2,7 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>하스타티 메인</title>
   <style>
     body { margin: 0; font-family: Pretendard, sans-serif; background: #f5f6fa; }
@@ -11,12 +12,14 @@
     }
     nav ul { list-style: none; display: flex; gap: 24px; padding: 0; margin: 0; }
     nav li { cursor: pointer; font-weight: bold; }
+
     #auth-modal {
       display: none; position: fixed; top: 80px; right: 40px;
       background: white; border: 1px solid #ccc; padding: 20px;
       border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.2);
       z-index: 999; width: 300px;
     }
+
     input, select, button {
       width: 100%; padding: 10px; margin: 6px 0;
       border-radius: 6px; border: 1px solid #ccc;
@@ -24,6 +27,14 @@
     button {
       background: #2f80ed; color: white;
       font-weight: bold; border: none; cursor: pointer;
+    }
+    .close-btn {
+      text-align: right;
+      margin-top: -16px;
+      margin-bottom: 10px;
+      cursor: pointer;
+      font-size: 14px;
+      color: #888;
     }
   </style>
 </head>
@@ -48,17 +59,20 @@
 
   <!-- 로그인 / 회원가입 모달 -->
   <div id="auth-modal">
+    <div class="close-btn" onclick="closeModal()">✖ 닫기</div>
+
     <div id="login-form">
       <h3>로그인</h3>
-      <input id="login-id" placeholder="아이디">
-      <input id="login-pw" type="password" placeholder="비밀번호">
+      <input id="login-id" placeholder="아이디" />
+      <input id="login-pw" type="password" placeholder="비밀번호" />
       <button onclick="handleLogin()">로그인</button>
     </div>
+
     <div id="register-form" style="display:none">
       <h3>회원가입</h3>
-      <input id="reg-id" placeholder="아이디 (영문+숫자 6자 이상)">
-      <input id="reg-pw" type="password" placeholder="비밀번호 (영문+숫자+특수문자)">
-      <input id="reg-nick" placeholder="디스코드 닉네임">
+      <input id="reg-id" placeholder="아이디 (영문+숫자 6자 이상)" />
+      <input id="reg-pw" type="password" placeholder="비밀번호 (영문+숫자+특수문자)" />
+      <input id="reg-nick" placeholder="디스코드 닉네임" />
       <select id="reg-role">
         <option>하스타티</option>
         <option>레가투스</option>
@@ -71,19 +85,6 @@
   <script>
     let isAdmin = false;
 
-    const currentUserId = sessionStorage.getItem("currentUser");
-    const user = currentUserId ? JSON.parse(localStorage.getItem("user_" + currentUserId)) : null;
-    const authBox = document.getElementById('auth-actions');
-
-    if (user) {
-      authBox.innerHTML = `
-        <span style="color:white;">🌿 ${user.nickname} (${user.role})님</span>
-        <button onclick="logout()" style="margin-left: 12px; background: white; color: #2f80ed; border: none; border-radius: 6px; padding: 6px 12px; cursor: pointer;">
-          로그아웃
-        </button>
-      `;
-    }
-
     function toggleLogin() {
       document.getElementById('auth-modal').style.display = 'block';
       document.getElementById('login-form').style.display = 'block';
@@ -94,6 +95,10 @@
       document.getElementById('auth-modal').style.display = 'block';
       document.getElementById('login-form').style.display = 'none';
       document.getElementById('register-form').style.display = 'block';
+    }
+
+    function closeModal() {
+      document.getElementById('auth-modal').style.display = 'none';
     }
 
     function handleLogin() {
@@ -113,14 +118,16 @@
       const pw = document.getElementById('reg-pw').value.trim();
       const nick = document.getElementById('reg-nick').value.trim();
       const role = document.getElementById('reg-role').value;
+
       if (!/^[a-zA-Z0-9]{6,}$/.test(id)) return alert("아이디는 영문+숫자 6자 이상이어야 합니다.");
-      if (!/^(?=.*[a-zA-Z])(?=.*\\d)(?=.*\\W).{6,}$/.test(pw)) return alert("비밀번호는 조건을 만족해야 합니다.");
+      if (!/^(?=.*[a-zA-Z])(?=.*\d)(?=.*\W).{6,}$/.test(pw)) return alert("비밀번호는 조건을 만족해야 합니다.");
       if (!nick) return alert("닉네임을 입력해주세요.");
       if (!['하스타티','레가투스','헤나'].includes(role)) return alert("소속을 선택해주세요.");
       if (localStorage.getItem("user_" + id)) return alert("이미 존재하는 아이디입니다.");
+
       localStorage.setItem("user_" + id, JSON.stringify({ id, pw, nickname: nick, role, status: "pending" }));
       alert("회원가입 완료! 관리자 승인 후 로그인 가능합니다.");
-      document.getElementById('auth-modal').style.display = 'none';
+      closeModal();
     }
 
     function enterAdminMode() {
@@ -158,6 +165,22 @@
 
       location.href = target;
     }
+
+    // 로그인 상태 유지 표시
+    const currentUserId = sessionStorage.getItem("currentUser");
+    const user = currentUserId ? JSON.parse(localStorage.getItem("user_" + currentUserId)) : null;
+    const authBox = document.getElementById('auth-actions');
+
+    if (user) {
+      authBox.innerHTML = `
+        <span style="color:white;">🌿 ${user.nickname} (${user.role})님</span>
+        <button onclick="logout()" style="margin-left: 12px; background: white; color: #2f80ed; border: none; border-radius: 6px; padding: 6px 12px; cursor: pointer;">
+          로그아웃
+        </button>
+      `;
+    }
   </script>
+
 </body>
 </html>
+
