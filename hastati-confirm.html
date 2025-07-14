@@ -130,19 +130,20 @@
     for (let key in localStorage) {
       if (key.startsWith("schedule_approved_")) {
         const s = JSON.parse(localStorage.getItem(key));
-        if (!weekDates.includes(s.date)) continue;
+        const scheduleDate = new Date(s.date).toISOString().split("T")[0];
+        if (!weekDates.includes(scheduleDate)) continue;
+
         const startHour = parseInt(s.start.split(":")[0]);
         const endHour = parseInt(s.end.split(":")[0]);
-        const date = s.date;
 
         for (let h = startHour; h < endHour; h++) {
           const hourKey = h.toString().padStart(2, '0') + ":00";
-          if (scheduleMap[hourKey][date]) {
-            scheduleMap[hourKey][date] += ` / ${s.nickname}`;
+          if (scheduleMap[hourKey][scheduleDate]) {
+            scheduleMap[hourKey][scheduleDate] += ` / ${s.nickname}`;
           } else {
-            scheduleMap[hourKey][date] = s.nickname;
+            scheduleMap[hourKey][scheduleDate] = s.nickname;
           }
-          scheduleKeys[hourKey][date].push(key);
+          scheduleKeys[hourKey][scheduleDate].push(key);
         }
       }
     }
