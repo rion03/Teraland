@@ -68,14 +68,6 @@
     return d;
   }
 
-  function getWeekNumber(d) {
-    const date = new Date(d.getFullYear(), d.getMonth(), d.getDate());
-    const firstDay = new Date(date.getFullYear(), date.getMonth(), 1);
-    const firstMonday = getMonday(firstDay);
-    const diffDays = Math.floor((date - firstMonday) / (1000 * 60 * 60 * 24));
-    return Math.floor(diffDays / 7) + 1;
-  }
-
   function getWeekDates(startDate) {
     const dates = [];
     for (let i = 0; i < 7; i++) {
@@ -93,14 +85,19 @@
     for (let i = -1; i <= 2; i++) {
       const weekMonday = new Date(baseMonday);
       weekMonday.setDate(baseMonday.getDate() + i * 7);
-      const weekNum = getWeekNumber(weekMonday);
-      const month = weekMonday.getMonth() + 1;
-      const label = `${month}월 ${weekNum}주차`;
+      const label = `${weekMonday.getMonth()+1}월 ${getWeekOfMonth(weekMonday)}주차`;
       const value = weekMonday.toISOString().split("T")[0];
-      const opt = new Option(label, value);
-      if (i === 0) opt.selected = true;
-      weekSelect.appendChild(opt);
+      const option = new Option(label, value);
+      if (i === 0) option.selected = true;
+      weekSelect.appendChild(option);
     }
+  }
+
+  function getWeekOfMonth(date) {
+    const firstDay = new Date(date.getFullYear(), date.getMonth(), 1);
+    const firstMonday = getMonday(firstDay);
+    const diff = Math.floor((date - firstMonday) / (1000 * 60 * 60 * 24));
+    return Math.floor(diff / 7) + 1;
   }
 
   function deleteSchedule(key) {
@@ -117,6 +114,7 @@
     const scheduleMap = {};
     const scheduleKeys = {};
 
+    // 00:00~23:00 셋업
     for (let h = 0; h < 24; h++) {
       const hour = h.toString().padStart(2, '0') + ":00";
       scheduleMap[hour] = {};
@@ -127,27 +125,29 @@
       });
     }
 
+    // 승인된 일정들 적용
     for (let key in localStorage) {
       if (key.startsWith("schedule_approved_")) {
         const s = JSON.parse(localStorage.getItem(key));
-        const scheduleDate = s.date.split("T")[0]; // 중요 수정: 날짜만 추출
-        if (!weekDates.includes(scheduleDate)) continue;
+        const dateStr = s.date.split("T")[0]; // "2025-07-15"
+        if (!weekDates.includes(dateStr)) continue;
 
         const startHour = parseInt(s.start.split(":")[0]);
         const endHour = parseInt(s.end.split(":")[0]);
 
         for (let h = startHour; h < endHour; h++) {
           const hourKey = h.toString().padStart(2, '0') + ":00";
-          if (scheduleMap[hourKey][scheduleDate]) {
-            scheduleMap[hourKey][scheduleDate] += ` / ${s.nickname}`;
+          if (scheduleMap[hourKey][dateStr]) {
+            scheduleMap[hourKey][dateStr] += ` / ${s.nickname}`;
           } else {
-            scheduleMap[hourKey][scheduleDate] = s.nickname;
+            scheduleMap[hourKey][dateStr] = s.nickname;
           }
-          scheduleKeys[hourKey][scheduleDate].push(key);
+          scheduleKeys[hourKey][dateStr].push(key);
         }
       }
     }
 
+    // 표 렌더링
     const tbody = document.getElementById("schedule-body");
     tbody.innerHTML = "";
     for (let h = 0; h < 24; h++) {
