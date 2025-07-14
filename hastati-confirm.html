@@ -8,6 +8,7 @@
     main { max-width: 1000px; margin: auto; background: white; padding: 40px;
            border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
     h2 { color: #2f80ed; margin-bottom: 10px; }
+    h3 { color: #333; margin-top: 30px; }
     table { width: 100%; border-collapse: collapse; table-layout: fixed; }
     th, td {
       border: 1px solid #ccc; padding: 8px; text-align: center;
@@ -21,11 +22,16 @@
       border: none; padding: 2px 4px; border-radius: 4px;
       cursor: pointer;
     }
+    .pending-entry { margin-bottom: 8px; }
   </style>
 </head>
 <body>
 <main>
   <h2>하스타티 확정 스케줄표 (이번 주)</h2>
+
+  <h3>내가 신청한 일정 (승인 대기 중)</h3>
+  <div id="my-pending-box" style="margin-bottom: 40px;"></div>
+
   <table>
     <thead>
       <tr>
@@ -76,6 +82,27 @@
     localStorage.removeItem(key);
     alert("일정이 삭제되었습니다.");
     renderSchedule();
+    showMyPendingSchedules();
+  }
+
+  function showMyPendingSchedules() {
+    const box = document.getElementById("my-pending-box");
+    box.innerHTML = "";
+    let found = false;
+    for (let key in localStorage) {
+      if (key.startsWith("schedule_pending_")) {
+        const s = JSON.parse(localStorage.getItem(key));
+        if (s.id === user.id) {
+          found = true;
+          const div = document.createElement("div");
+          div.className = "pending-entry";
+          div.innerHTML = `🕓 <strong>${s.date}</strong> ${s.start} ~ ${s.end}
+            <button onclick="deleteSchedule('${key}')">삭제</button>`;
+          box.appendChild(div);
+        }
+      }
+    }
+    if (!found) box.innerHTML = "<p>현재 내가 신청한 일정이 없습니다.</p>";
   }
 
   function renderSchedule() {
@@ -147,6 +174,7 @@
   }
 
   renderSchedule();
+  showMyPendingSchedules();
 </script>
 </body>
 </html>
