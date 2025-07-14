@@ -111,7 +111,7 @@
             } else {
               scheduleMap[hourKey][scheduleDate] = s.nickname;
             }
-            scheduleKeys[hourKey][scheduleDate].push(key);
+            scheduleKeys[hourKey][scheduleDate].push({ key: key, owner: s.id });
           }
         } catch (e) {
           console.error("JSON 파싱 오류:", key, e);
@@ -128,12 +128,17 @@
       weekDates.forEach(date => {
         const td = document.createElement("td");
         td.textContent = scheduleMap[hour][date] || "";
-        if (isAdmin && scheduleKeys[hour][date].length > 0) {
-          const btn = document.createElement("button");
-          btn.textContent = "삭제";
-          btn.className = "remove-btn";
-          btn.onclick = () => deleteSchedule(scheduleKeys[hour][date][0]);
-          td.appendChild(btn);
+
+        const keyObj = scheduleKeys[hour][date][0];
+        if (keyObj) {
+          const isMine = keyObj.owner === user.id;
+          if (isAdmin || isMine) {
+            const btn = document.createElement("button");
+            btn.textContent = "삭제";
+            btn.className = "remove-btn";
+            btn.onclick = () => deleteSchedule(keyObj.key);
+            td.appendChild(btn);
+          }
         }
         row.appendChild(td);
       });
