@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8" />
-  <title>하스타티 관리자 페이지</title>
+  <title>관리자 페이지</title>
   <style>
     body { font-family: Pretendard, sans-serif; background: #f5f6fa; padding: 40px; }
     h2 { color: #2f80ed; }
@@ -24,118 +24,107 @@
 </head>
 <body>
 
-  <h2>🌿 하스타티 관리자 페이지</h2>
+  <h2>🌿 관리자 페이지</h2>
 
+  <!-- 회원가입 승인/거절 -->
   <div class="section">
     <h3>회원가입 승인 대기자</h3>
-    <div id="signup-list">불러오는 중...</div>
+    <div id="signup-list"></div>
   </div>
 
+  <!-- 일정 신청 승인/거절 -->
   <div class="section">
-    <h3>일정 신청 승인 대기 목록</h3>
-    <div id="schedule-list">불러오는 중...</div>
+    <h3>일정 신청 목록</h3>
+    <div id="schedule-list"></div>
   </div>
 
-<script>
-  const isAdmin = sessionStorage.getItem("isAdmin") === "true";
-  if (!isAdmin) {
-    alert("관리자 권한이 없습니다.");
-    location.href = "hastati.html";
-  }
+  <script>
+    function loadSignupList() {
+      const container = document.getElementById('signup-list');
+      container.innerHTML = '';
 
-  function loadSignupList() {
-    const container = document.getElementById("signup-list");
-    container.innerHTML = "";
-
-    for (let key in localStorage) {
-      if (key.startsWith("user_")) {
-        try {
+      for (let key in localStorage) {
+        if (key.startsWith("user_")) {
           const user = JSON.parse(localStorage.getItem(key));
-          if (user && user.status === "pending") {
+          if (user.status === "pending") {
             const div = document.createElement("div");
             div.className = "entry";
             div.innerHTML = `
-              <strong>${user.nickname}</strong> (${user.id}, ${user.role})<br>
+              <strong>${user.nickname}</strong> (${user.id}, ${user.role})
+              <br/>
               <button class="approve" onclick="approveUser('${user.id}')">✅ 승인</button>
               <button class="reject" onclick="rejectUser('${user.id}')">❌ 거절</button>
             `;
             container.appendChild(div);
           }
-        } catch {}
+        }
       }
     }
 
-    if (container.innerHTML === "") {
-      container.innerHTML = "<em>대기 중인 회원이 없습니다.</em>";
-    }
-  }
+    function loadScheduleList() {
+      const container = document.getElementById('schedule-list');
+      container.innerHTML = '';
 
-  function loadScheduleList() {
-    const container = document.getElementById("schedule-list");
-    container.innerHTML = "";
-
-    for (let key in localStorage) {
-      if (key.startsWith("schedule_")) {
-        try {
+      for (let key in localStorage) {
+        if (key.startsWith("schedule_")) {
           const item = JSON.parse(localStorage.getItem(key));
           const status = item.status || "pending";
           if (status === "pending") {
             const div = document.createElement("div");
             div.className = "entry";
-            const time = item.time || `${item.start}~${item.end}`;
+            const time = item.time || `${item.start || "?"}~${item.end || "?"}`;
             const user = item.user || item.nickname || "사용자";
             div.innerHTML = `
-              <strong>${user}</strong> - ${item.date} ${time}<br>
+              <strong>${user}</strong> - ${item.date} ${time}
+              <br/>
               <button class="approve" onclick="approveSchedule('${key}')">✅ 승인</button>
               <button class="reject" onclick="rejectSchedule('${key}')">❌ 거절</button>
             `;
             container.appendChild(div);
           }
-        } catch {}
+        }
       }
     }
 
-    if (container.innerHTML === "") {
-      container.innerHTML = "<em>대기 중인 일정이 없습니다.</em>";
+    function approveUser(id) {
+      const user = JSON.parse(localStorage.getItem("user_" + id));
+      user.status = "approved";
+      localStorage.setItem("user_" + id, JSON.stringify(user));
+      alert(`${user.nickname} 승인 완료`);
+      loadSignupList();
     }
-  }
 
-  function approveUser(id) {
-    const key = "user_" + id;
-    const user = JSON.parse(localStorage.getItem(key));
-    user.status = "approved";
-    localStorage.setItem(key, JSON.stringify(user));
-    alert(`${user.nickname} 승인 완료`);
-    loadSignupList();
-  }
+    function rejectUser(id) {
+      if (!confirm("정말로 거절하시겠습니까?")) return;
+      localStorage.removeItem("user_" + id);
+      alert("사용자 삭제 완료");
+      loadSignupList();
+    }
 
-  function rejectUser(id) {
-    const key = "user_" + id;
-    if (!confirm("정말로 거절하시겠습니까?")) return;
-    localStorage.removeItem(key);
-    alert("사용자 삭제 완료");
-    loadSignupList();
-  }
+    function approveSchedule(key) {
+      const item = JSON.parse(localStorage.getItem(key));
+      item.status = "approved";
+      localStorage.setItem(key, JSON.stringify(item));
+      alert("일정 승인 완료");
+      loadScheduleList();
+    }
 
-  function approveSchedule(key) {
-    const item = JSON.parse(localStorage.getItem(key));
-    item.status = "approved";
-    localStorage.setItem(key, JSON.stringify(item));
-    alert("일정 승인 완료");
-    loadScheduleList();
-  }
+    function rejectSchedule(key) {
+      if (!confirm("이 일정을 거절하시겠습니까?")) return;
+      localStorage.removeItem(key);
+      alert("일정 거절 및 삭제 완료");
+      loadScheduleList();
+    }
 
-  function rejectSchedule(key) {
-    if (!confirm("이 일정을 거절하시겠습니까?")) return;
-    localStorage.removeItem(key);
-    alert("일정 거절 및 삭제 완료");
-    loadScheduleList();
-  }
-
-  window.onload = () => {
-    loadSignupList();
-    loadScheduleList();
-  };
-</script>
+    window.onload = () => {
+      if (sessionStorage.getItem("isAdmin") !== "true") {
+        alert("관리자 권한이 없습니다.");
+        location.href = "hastati.html";
+        return;
+      }
+      loadSignupList();
+      loadScheduleList();
+    };
+  </script>
 </body>
 </html>
