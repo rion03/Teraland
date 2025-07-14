@@ -2,88 +2,145 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8" />
-  <title>하스타티 관리자 페이지</title>
+  <title>하스타티 확정 스케줄표</title>
   <style>
     body { font-family: Pretendard, sans-serif; background: #f5f6fa; padding: 40px; }
-    h2 { color: #2f80ed; }
-    .section {
-      background: white; padding: 20px; margin-bottom: 32px;
-      border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    main { max-width: 1000px; margin: auto; background: white; padding: 40px;
+           border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+    h2 { color: #2f80ed; margin-bottom: 10px; }
+    table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+    th, td {
+      border: 1px solid #ccc; padding: 8px; text-align: center;
+      font-size: 13px; word-break: break-word;
     }
-    .entry {
-      border-bottom: 1px solid #ddd; padding: 12px 0;
+    th { background: #e8f0ff; }
+    td { min-height: 40px; position: relative; }
+    .remove-btn {
+      position: absolute; bottom: 2px; right: 4px;
+      font-size: 10px; background: red; color: white;
+      border: none; padding: 2px 4px; border-radius: 4px;
+      cursor: pointer;
     }
-    button {
-      margin-right: 8px; padding: 6px 12px;
-      border: none; border-radius: 6px; cursor: pointer;
-      font-weight: bold;
-    }
-    .approve { background: #2f80ed; color: white; }
-    .reject { background: #eb5757; color: white; }
   </style>
 </head>
 <body>
-  <h2>🌟 관리자 스케줄 승인 대기 목록</h2>
-  <div id="pending-schedules" class="section"></div>
+<main>
+  <h2>하스타티 확정 스케줄표 (이번 주)</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>시간</th>
+        <th>월</th>
+        <th>화</th>
+        <th>수</th>
+        <th>목</th>
+        <th>금</th>
+        <th>토</th>
+        <th>일</th>
+      </tr>
+    </thead>
+    <tbody id="schedule-body"></tbody>
+  </table>
+</main>
+<script>
+  const isAdmin = sessionStorage.getItem("isAdmin") === "true";
+  const userId = sessionStorage.getItem("currentUser");
+  const user = userId ? JSON.parse(localStorage.getItem("user_" + userId)) : null;
+  if (!user && !isAdmin) {
+    alert("로그인이 필요합니다.");
+    location.href = "hastati.html";
+  }
 
-  <script>
-    const isAdmin = sessionStorage.getItem("isAdmin") === "true";
-    const userId = sessionStorage.getItem("currentUser");
-    const user = userId ? JSON.parse(localStorage.getItem("user_" + userId)) : null;
+  function getMonday(date) {
+    const d = new Date(date);
+    const day = d.getDay();
+    const diff = (day === 0 ? -6 : 1) - day;
+    d.setDate(d.getDate() + diff);
+    d.setHours(0, 0, 0, 0);
+    return d;
+  }
 
-    if (!user || !isAdmin) {
-      alert("관리자 권한이 필요합니다.");
-      location.href = "hastati.html";
+  function getWeekDates(startDate) {
+    const dates = [];
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(startDate);
+      d.setDate(startDate.getDate() + i);
+      dates.push(d.toISOString().split("T")[0]);
+    }
+    return dates;
+  }
+
+  function deleteSchedule(key) {
+    if (!confirm("이 일정을 삭제하시겠습니까?")) return;
+    localStorage.removeItem(key);
+    alert("일정이 삭제되었습니다.");
+    renderSchedule();
+  }
+
+  function renderSchedule() {
+    const monday = getMonday(new Date());
+    const weekDates = getWeekDates(monday);
+    const scheduleMap = {};
+    const scheduleKeys = {};
+
+    for (let h = 0; h < 24; h++) {
+      const hour = h.toString().padStart(2, '0') + ":00";
+      scheduleMap[hour] = {};
+      scheduleKeys[hour] = {};
+      weekDates.forEach(date => {
+        scheduleMap[hour][date] = "";
+        scheduleKeys[hour][date] = [];
+      });
     }
 
-    function showPendingSchedules() {
-      const box = document.getElementById("pending-schedules");
-      box.innerHTML = "";
-
-      let found = false;
-
-      for (let key in localStorage) {
-        if (key.startsWith("schedule_pending_")) {
+    for (let key in localStorage) {
+      if (key.startsWith("schedule_approved_")) {
+        try {
           const s = JSON.parse(localStorage.getItem(key));
-          found = true;
+          const scheduleDate = new Date(s.date).toISOString().split("T")[0];
+          if (!weekDates.includes(scheduleDate)) continue;
 
-          const div = document.createElement("div");
-          div.className = "entry";
-          div.innerHTML = `
-            <strong>신청자:</strong> ${s.nickname} (${s.id})<br/>
-            <strong>날짜:</strong> ${s.date}<br/>
-            <strong>시간:</strong> ${s.start} ~ ${s.end}<br/>
-            <button class="approve" onclick="approveSchedule('${key}')">✅ 승인</button>
-            <button class="reject" onclick="rejectSchedule('${key}')">❌ 거절</button>
-          `;
-          box.appendChild(div);
+          const startHour = parseInt(s.start.split(":")[0]);
+          const endHour = parseInt(s.end.split(":")[0]);
+
+          for (let h = startHour; h < endHour; h++) {
+            const hourKey = h.toString().padStart(2, '0') + ":00";
+            if (scheduleMap[hourKey][scheduleDate]) {
+              scheduleMap[hourKey][scheduleDate] += ` / ${s.nickname}`;
+            } else {
+              scheduleMap[hourKey][scheduleDate] = s.nickname;
+            }
+            scheduleKeys[hourKey][scheduleDate].push(key);
+          }
+        } catch (e) {
+          console.error("JSON 파싱 오류:", key, e);
         }
       }
-
-      if (!found) {
-        box.innerHTML = "<p>⛱ 현재 승인 대기 중인 일정이 없습니다.</p>";
-      }
     }
 
-    function approveSchedule(key) {
-      const s = JSON.parse(localStorage.getItem(key));
-      localStorage.removeItem(key);
-
-      const approvedKey = "schedule_approved_" + Date.now();
-      localStorage.setItem(approvedKey, JSON.stringify(s));
-
-      alert("✅ 일정이 승인되었습니다.");
-      showPendingSchedules();
+    const tbody = document.getElementById("schedule-body");
+    tbody.innerHTML = "";
+    for (let h = 0; h < 24; h++) {
+      const hour = h.toString().padStart(2, '0') + ":00";
+      const row = document.createElement("tr");
+      row.innerHTML = `<th>${hour}</th>`;
+      weekDates.forEach(date => {
+        const td = document.createElement("td");
+        td.textContent = scheduleMap[hour][date] || "";
+        if (isAdmin && scheduleKeys[hour][date].length > 0) {
+          const btn = document.createElement("button");
+          btn.textContent = "삭제";
+          btn.className = "remove-btn";
+          btn.onclick = () => deleteSchedule(scheduleKeys[hour][date][0]);
+          td.appendChild(btn);
+        }
+        row.appendChild(td);
+      });
+      tbody.appendChild(row);
     }
+  }
 
-    function rejectSchedule(key) {
-      if (!confirm("❌ 이 일정을 거절하시겠습니까?")) return;
-      localStorage.removeItem(key);
-      alert("거절되었습니다.");
-      showPendingSchedules();
-    }
-
-    showPendingSchedules();
-  </script>
+  renderSchedule();
+</script>
 </body>
 </html>
