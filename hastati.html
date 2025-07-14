@@ -76,12 +76,12 @@
     const authBox = document.getElementById('auth-actions');
 
     if (user) {
-      authBox.innerHTML = 
+      authBox.innerHTML = `
         <span style="color:white;">🌿 ${user.nickname} (${user.role})님</span>
         <button onclick="logout()" style="margin-left: 12px; background: white; color: #2f80ed; border: none; border-radius: 6px; padding: 6px 12px; cursor: pointer;">
           로그아웃
         </button>
-      ;
+      `;
     }
 
     function toggleLogin() {
@@ -161,52 +161,3 @@
   </script>
 </body>
 </html>
-
-<script>
-  function showPendingUsers() {
-    if (sessionStorage.getItem("isAdmin") !== "true") return;
-
-    const pendingBox = document.getElementById("pending-users");
-    const panel = document.getElementById("admin-panel");
-    pendingBox.innerHTML = '';
-    panel.style.display = "block";
-
-    for (let key in localStorage) {
-      if (key.startsWith("user_")) {
-        const user = JSON.parse(localStorage.getItem(key));
-        if (user.status === "pending") {
-          const div = document.createElement("div");
-          div.style.marginBottom = "10px";
-          div.innerHTML = 
-            🌱 <strong>${user.nickname}</strong> (${user.id}, ${user.role})<br/>
-            <button onclick="approveUser('${user.id}')">✅ 승인</button>
-            <button onclick="rejectUser('${user.id}')">❌ 거절</button>
-          ;
-          pendingBox.appendChild(div);
-        }
-      }
-    }
-  }
-
-  function approveUser(id) {
-    const user = JSON.parse(localStorage.getItem("user_" + id));
-    user.status = "approved";
-    localStorage.setItem("user_" + id, JSON.stringify(user));
-    alert(${user.nickname} 승인 완료);
-    showPendingUsers();
-  }
-
-  function rejectUser(id) {
-    if (!confirm("정말 거절하시겠습니까?")) return;
-    localStorage.removeItem("user_" + id);
-    alert("거절 및 삭제 완료");
-    showPendingUsers();
-  }
-
-  // 페이지 로드시 관리자면 승인 목록 표시
-  window.onload = () => {
-    if (sessionStorage.getItem("isAdmin") === "true") {
-      showPendingUsers();
-    }
-  };
-</script>
