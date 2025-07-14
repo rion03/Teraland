@@ -101,13 +101,15 @@
       localStorage.removeItem(key);
 
       const approvedKey = "schedule_approved_" + Date.now();
-      localStorage.setItem(approvedKey, JSON.stringify({
+      const approvedItem = {
         id: item.id,
         nickname: item.nickname,
         date: item.date,
         start: item.start,
         end: item.end
-      }));
+      };
+
+      localStorage.setItem(approvedKey, JSON.stringify(approvedItem));
 
       alert("일정 승인 완료");
       loadScheduleList();
