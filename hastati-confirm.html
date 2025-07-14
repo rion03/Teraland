@@ -130,7 +130,7 @@
     for (let key in localStorage) {
       if (key.startsWith("schedule_approved_")) {
         const s = JSON.parse(localStorage.getItem(key));
-        const scheduleDate = new Date(s.date).toISOString().split("T")[0];
+        const scheduleDate = s.date.split("T")[0]; // 중요 수정: 날짜만 추출
         if (!weekDates.includes(scheduleDate)) continue;
 
         const startHour = parseInt(s.start.split(":")[0]);
