@@ -169,5 +169,32 @@
       // 페이지 로딩 시 로그인 상태 반영
       updateAuthUI();
     </script>
+
+    <script type="module">
+  import {
+    toggleLogin,
+    toggleRegister,
+    closeModal,
+    handleLogin,
+    handleRegister,
+    enterAdminMode,
+    requireLogin,
+    logout,
+    updateAuthUI,
+  } from "./js/auth.js";
+
+  // 전역으로 연결
+  window.toggleLogin = toggleLogin;
+  window.toggleRegister = toggleRegister;
+  window.closeModal = closeModal;
+  window.handleLogin = handleLogin;
+  window.handleRegister = handleRegister;
+  window.enterAdminMode = enterAdminMode;
+  window.requireLogin = requireLogin;
+  window.logout = logout;
+
+  updateAuthUI(); // 로그인 상태 UI 반영
+</script>
+
   </body>
 </html>
