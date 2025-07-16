@@ -73,34 +73,35 @@
     <h2>🌿 관리자 페이지</h2>
 
     <!-- 관리자 로그인 패널 -->
-<div class="admin-login" id="admin-login-panel" style="display: none">
-  <label>관리자 코드 입력: <input type="password" id="admin-code" /></label>
-  <button onclick="confirmAdmin()">관리자 로그인</button>
-</div>
+    <div class="admin-login" id="admin-login-panel" style="display: none">
+      <label>관리자 코드 입력: <input type="password" id="admin-code" /></label>
+      <button onclick="confirmAdmin()">관리자 로그인</button>
+    </div>
 
-<!-- 회원가입 승인/거절 -->
-<div class="section">
-  <h3>회원가입 승인 대기자</h3>
-  <div id="signup-list"></div>
-</div>
+    <!-- 회원가입 승인/거절 -->
+    <div class="section">
+      <h3>회원가입 승인 대기자</h3>
+      <div id="signup-list"></div>
+    </div>
 
-<!-- 일정 신청 승인/거절 -->
-<div class="section">
-  <h3>일정 신청 목록</h3>
-  <div id="schedule-list"></div>
-</div>
+    <!-- 일정 신청 승인/거절 -->
+    <div class="section">
+      <h3>일정 신청 목록</h3>
+      <div id="schedule-list"></div>
+    </div>
 
-<!-- ✅ 승인된 계정 목록 -->
-<div class="section">
-  <h3>승인된 계정 목록</h3>
-  <div id="approved-users"></div>
-</div>
+    <!-- ✅ 승인된 계정 목록 -->
+    <div class="section">
+      <h3>승인된 계정 목록</h3>
+      <div id="approved-users"></div>
+    </div>
 
-<script type="module">
-  import { initAdminPage } from "./js/admin.js";
-  initAdminPage();
-</script>
-
+    <!-- ✅ 정상 위치의 script 모듈 -->
+    <script type="module">
+      import { initAdminPage } from "./js/admin.js";
+      initAdminPage();
     </script>
   </body>
+</html>
+
 </html>
