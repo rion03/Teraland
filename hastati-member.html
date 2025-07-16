@@ -1,129 +1,112 @@
 <!DOCTYPE html>
 <html lang="ko">
-<head>
-  <meta charset="UTF-8" />
-  <title>일정 신청 - 하스타티</title>
-  <style>
-    body { font-family: Pretendard, sans-serif; margin: 0; padding: 40px; background: #f5f6fa; }
-    main { max-width: 600px; margin: auto; background: white; padding: 40px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
-    h2 { color: #2f80ed; }
-    input, select, button {
-      width: 100%; padding: 10px; margin: 10px 0;
-      border: 1px solid #ccc; border-radius: 6px;
-    }
-    button {
-      background: #2f80ed; color: white; font-weight: bold;
-      border: none; cursor: pointer;
-    }
-    ul { list-style: none; padding: 0; margin-top: 20px; }
-    li {
-      background: #f1f4f8; padding: 10px; margin-bottom: 10px;
-      border-radius: 6px; font-size: 14px;
-      display: flex; justify-content: space-between; align-items: center;
-    }
-    .del-btn {
-      background: red; color: white; border: none;
-      padding: 4px 8px; border-radius: 4px; cursor: pointer;
-    }
-  </style>
-</head>
-<body>
-<main>
-  <h2>하스타티 일정표 신청</h2>
+  <head>
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
 
-  <label>날짜 선택</label>
-  <input type="date" id="date">
+    <script>
+      const firebaseConfig = {
+        apiKey: "AIzaSyD1BFxYBl2hMwGujnQO80Lo4DoIcq42lmM",
+        authDomain: "test-49494.firebaseapp.com",
+        projectId: "test-49494",
+        storageBucket: "test-49494.firebasestorage.app",
+        messagingSenderId: "111211224136",
+        appId: "1:111211224136:web:d660e9e41b39cf2302cc7d",
+        measurementId: "G-B0EH6JL7LP",
+      };
+      firebase.initializeApp(firebaseConfig);
+    </script>
+    <meta charset="UTF-8" />
+    <title>일정 신청 - 하스타티</title>
+    <style>
+      body {
+        font-family: Pretendard, sans-serif;
+        margin: 0;
+        padding: 40px;
+        background: #f5f6fa;
+      }
+      main {
+        max-width: 600px;
+        margin: auto;
+        background: white;
+        padding: 40px;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      }
+      h2 {
+        color: #2f80ed;
+      }
+      input,
+      select,
+      button {
+        width: 100%;
+        padding: 10px;
+        margin: 10px 0;
+        border: 1px solid #ccc;
+        border-radius: 6px;
+      }
+      button {
+        background: #2f80ed;
+        color: white;
+        font-weight: bold;
+        border: none;
+        cursor: pointer;
+      }
+      ul {
+        list-style: none;
+        padding: 0;
+        margin-top: 20px;
+      }
+      li {
+        background: #f1f4f8;
+        padding: 10px;
+        margin-bottom: 10px;
+        border-radius: 6px;
+        font-size: 14px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      .del-btn {
+        background: red;
+        color: white;
+        border: none;
+        padding: 4px 8px;
+        border-radius: 4px;
+        cursor: pointer;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h2>하스타티 일정표 신청</h2>
 
-  <label>시작 시간</label>
-  <select id="start"></select>
+      <label>날짜 선택</label>
+      <input type="date" id="date" />
 
-  <label>종료 시간</label>
-  <select id="end"></select>
+      <label>시작 시간</label>
+      <select id="start"></select>
 
-  <button onclick="submitSchedule()">신청하기</button>
+      <label>종료 시간</label>
+      <select id="end"></select>
 
-  <h3 style="margin-top: 40px;">내가 신청한 일정 (승인 대기)</h3>
-  <ul id="my-list"></ul>
-</main>
+      <button onclick="submitSchedule()">신청하기</button>
 
-<script>
-  const userId = sessionStorage.getItem("currentUser");
-  const user = userId ? JSON.parse(localStorage.getItem("user_" + userId)) : null;
+      <h3 style="margin-top: 40px">내가 신청한 일정 (승인 대기)</h3>
+      <ul id="my-list"></ul>
+    </main>
 
-  if (!user || user.status !== "approved") {
-    alert("로그인이 필요하거나 승인이 필요합니다.");
-    location.href = "hastati.html";
-  }
+    <script type="module">
+      import { fillTimes, submitSchedule, loadMyList } from "./js/member.js";
 
-  function fillTimes() {
-    for (let h = 0; h <= 24; h++) {
-      const time = h.toString().padStart(2, '0') + ":00";
-      document.getElementById("start").appendChild(new Option(time, time));
-      document.getElementById("end").appendChild(new Option(time, time));
-    }
-  }
+      // 이벤트 함수 연결
+      window.submitSchedule = submitSchedule;
 
-  function submitSchedule() {
-    const date = document.getElementById("date").value;
-    const start = document.getElementById("start").value;
-    const end = document.getElementById("end").value;
-
-    if (!date || !start || !end) {
-      alert("모든 항목을 입력해주세요.");
-      return;
-    }
-
-    if (start >= end) {
-      alert("시작 시간은 종료 시간보다 빨라야 합니다.");
-      return;
-    }
-
-    const key = "schedule_pending_" + Date.now();
-    const schedule = {
-      id: user.id,
-      nickname: user.nickname,
-      date,
-      start,
-      end
-    };
-    localStorage.setItem(key, JSON.stringify(schedule));
-    alert("일정 신청 완료! 관리자의 승인을 기다려주세요.");
-    loadMyList();
-  }
-
-  function loadMyList() {
-    const list = document.getElementById("my-list");
-    list.innerHTML = "";
-
-    const entries = Object.entries(localStorage)
-      .filter(([k]) => k.startsWith("schedule_pending_"))
-      .map(([k, v]) => ({ key: k, ...JSON.parse(v) }))
-      .filter(s => s.id === user.id)
-      .sort((a, b) => a.date.localeCompare(b.date));
-
-    if (entries.length === 0) {
-      list.innerHTML = "<li>신청 내역이 없습니다.</li>";
-      return;
-    }
-
-    entries.forEach(item => {
-      const li = document.createElement("li");
-      li.innerHTML = `
-        ${item.date} ${item.start} ~ ${item.end}
-        <button class="del-btn" onclick="deletePending('${item.key}')">삭제</button>
-      `;
-      list.appendChild(li);
-    });
-  }
-
-  function deletePending(key) {
-    if (!confirm("정말 삭제하시겠습니까?")) return;
-    localStorage.removeItem(key);
-    loadMyList();
-  }
-
-  fillTimes();
-  loadMyList();
-</script>
-</body>
+      // 초기 실행
+      fillTimes();
+      loadMyList();
+    </script>
+  </body>
 </html>

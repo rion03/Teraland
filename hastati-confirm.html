@@ -1,180 +1,112 @@
 <!DOCTYPE html>
 <html lang="ko">
-<head>
-  <meta charset="UTF-8" />
-  <title>하스타티 확정 스케줄표</title>
-  <style>
-    body { font-family: Pretendard, sans-serif; background: #f5f6fa; padding: 40px; }
-    main { max-width: 1000px; margin: auto; background: white; padding: 40px;
-           border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-    h2 { color: #2f80ed; margin-bottom: 10px; }
-    h3 { color: #333; margin-top: 30px; }
-    table { width: 100%; border-collapse: collapse; table-layout: fixed; }
-    th, td {
-      border: 1px solid #ccc; padding: 8px; text-align: center;
-      font-size: 13px; word-break: break-word;
-    }
-    th { background: #e8f0ff; }
-    td { min-height: 40px; position: relative; }
-    .remove-btn {
-      position: absolute; bottom: 2px; right: 4px;
-      font-size: 10px; background: red; color: white;
-      border: none; padding: 2px 4px; border-radius: 4px;
-      cursor: pointer;
-    }
-    .pending-entry { margin-bottom: 8px; }
-  </style>
-</head>
-<body>
-<main>
-  <h2>하스타티 확정 스케줄표 (이번 주)</h2>
+  <head>
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
 
-  <h3>내가 신청한 일정 (승인 대기 중)</h3>
-  <div id="my-pending-box" style="margin-bottom: 40px;"></div>
-
-  <table>
-    <thead>
-      <tr>
-        <th>시간</th>
-        <th>월</th>
-        <th>화</th>
-        <th>수</th>
-        <th>목</th>
-        <th>금</th>
-        <th>토</th>
-        <th>일</th>
-      </tr>
-    </thead>
-    <tbody id="schedule-body"></tbody>
-  </table>
-</main>
-<script>
-  const userId = sessionStorage.getItem("currentUser");
-  const user = userId ? JSON.parse(localStorage.getItem("user_" + userId)) : null;
-  if (!user) {
-    alert("로그인이 필요합니다.");
-    location.href = "hastati.html";
-  }
-
-  const isAdmin = (user && user.role === "헤나");
-
-  function getMonday(date) {
-    const d = new Date(date);
-    const day = d.getDay();
-    const diff = (day === 0 ? -6 : 1) - day;
-    d.setDate(d.getDate() + diff);
-    d.setHours(0, 0, 0, 0);
-    return d;
-  }
-
-  function getWeekDates(startDate) {
-    const dates = [];
-    for (let i = 0; i < 7; i++) {
-      const d = new Date(startDate);
-      d.setDate(startDate.getDate() + i);
-      dates.push(d.toISOString().split("T")[0]);
-    }
-    return dates;
-  }
-
-  function deleteSchedule(key) {
-    if (!confirm("이 일정을 삭제하시겠습니까?")) return;
-    localStorage.removeItem(key);
-    alert("일정이 삭제되었습니다.");
-    renderSchedule();
-    showMyPendingSchedules();
-  }
-
-  function showMyPendingSchedules() {
-    const box = document.getElementById("my-pending-box");
-    box.innerHTML = "";
-    let found = false;
-    for (let key in localStorage) {
-      if (key.startsWith("schedule_pending_")) {
-        const s = JSON.parse(localStorage.getItem(key));
-        if (s.id === user.id) {
-          found = true;
-          const div = document.createElement("div");
-          div.className = "pending-entry";
-          div.innerHTML = `🕓 <strong>${s.date}</strong> ${s.start} ~ ${s.end}
-            <button onclick="deleteSchedule('${key}')">삭제</button>`;
-          box.appendChild(div);
-        }
+    <script>
+      const firebaseConfig = {
+        apiKey: "AIzaSyD1BFxYBl2hMwGujnQO80Lo4DoIcq42lmM",
+        authDomain: "test-49494.firebaseapp.com",
+        projectId: "test-49494",
+        storageBucket: "test-49494.firebasestorage.app",
+        messagingSenderId: "111211224136",
+        appId: "1:111211224136:web:d660e9e41b39cf2302cc7d",
+        measurementId: "G-B0EH6JL7LP",
+      };
+      firebase.initializeApp(firebaseConfig);
+    </script>
+    <meta charset="UTF-8" />
+    <title>하스타티 확정 스케줄표</title>
+    <style>
+      body {
+        font-family: Pretendard, sans-serif;
+        background: #f5f6fa;
+        padding: 40px;
       }
-    }
-    if (!found) box.innerHTML = "<p>현재 내가 신청한 일정이 없습니다.</p>";
-  }
-
-  function renderSchedule() {
-    const monday = getMonday(new Date());
-    const weekDates = getWeekDates(monday);
-    const scheduleMap = {};
-    const scheduleKeys = {};
-
-    for (let h = 0; h < 24; h++) {
-      const hour = h.toString().padStart(2, '0') + ":00";
-      scheduleMap[hour] = {};
-      scheduleKeys[hour] = {};
-      weekDates.forEach(date => {
-        scheduleMap[hour][date] = "";
-        scheduleKeys[hour][date] = [];
-      });
-    }
-
-    for (let key in localStorage) {
-      if (key.startsWith("schedule_approved_")) {
-        try {
-          const s = JSON.parse(localStorage.getItem(key));
-          const scheduleDate = new Date(s.date).toISOString().split("T")[0];
-          if (!weekDates.includes(scheduleDate)) continue;
-
-          const startHour = parseInt(s.start.split(":")[0]);
-          const endHour = parseInt(s.end.split(":")[0]);
-
-          for (let h = startHour; h < endHour; h++) {
-            const hourKey = h.toString().padStart(2, '0') + ":00";
-            if (scheduleMap[hourKey][scheduleDate]) {
-              scheduleMap[hourKey][scheduleDate] += ` / ${s.nickname}`;
-            } else {
-              scheduleMap[hourKey][scheduleDate] = s.nickname;
-            }
-            scheduleKeys[hourKey][scheduleDate].push({ key: key, owner: s.id });
-          }
-        } catch (e) {
-          console.error("JSON 파싱 오류:", key, e);
-        }
+      main {
+        max-width: 1000px;
+        margin: auto;
+        background: white;
+        padding: 40px;
+        border-radius: 12px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
       }
-    }
+      h2 {
+        color: #2f80ed;
+        margin-bottom: 10px;
+      }
+      h3 {
+        color: #333;
+        margin-top: 30px;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        table-layout: fixed;
+      }
+      th,
+      td {
+        border: 1px solid #ccc;
+        padding: 8px;
+        text-align: center;
+        font-size: 13px;
+        word-break: break-word;
+      }
+      th {
+        background: #e8f0ff;
+      }
+      td {
+        min-height: 40px;
+        position: relative;
+      }
+      .remove-btn {
+        position: absolute;
+        bottom: 2px;
+        right: 4px;
+        font-size: 10px;
+        background: red;
+        color: white;
+        border: none;
+        padding: 2px 4px;
+        border-radius: 4px;
+        cursor: pointer;
+      }
+      .pending-entry {
+        margin-bottom: 8px;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h2>하스타티 확정 스케줄표 (이번 주)</h2>
 
-    const tbody = document.getElementById("schedule-body");
-    tbody.innerHTML = "";
-    for (let h = 0; h < 24; h++) {
-      const hour = h.toString().padStart(2, '0') + ":00";
-      const row = document.createElement("tr");
-      row.innerHTML = `<th>${hour}</th>`;
-      weekDates.forEach(date => {
-        const td = document.createElement("td");
-        td.textContent = scheduleMap[hour][date] || "";
+      <h3>내가 신청한 일정 (승인 대기 중)</h3>
+      <div id="my-pending-box" style="margin-bottom: 40px"></div>
 
-        const keyObj = scheduleKeys[hour][date][0];
-        if (keyObj) {
-          const isMine = keyObj.owner === user.id;
-          if (isAdmin || isMine) {
-            const btn = document.createElement("button");
-            btn.textContent = "삭제";
-            btn.className = "remove-btn";
-            btn.onclick = () => deleteSchedule(keyObj.key);
-            td.appendChild(btn);
-          }
-        }
-        row.appendChild(td);
-      });
-      tbody.appendChild(row);
-    }
-  }
+      <table>
+        <thead>
+          <tr>
+            <th>시간</th>
+            <th>월</th>
+            <th>화</th>
+            <th>수</th>
+            <th>목</th>
+            <th>금</th>
+            <th>토</th>
+            <th>일</th>
+          </tr>
+        </thead>
+        <tbody id="schedule-body"></tbody>
+      </table>
+    </main>
+    <script type="module">
+      import { renderSchedule, showMyPendingSchedules } from "./js/confirm.js";
 
-  renderSchedule();
-  showMyPendingSchedules();
-</script>
-</body>
+      renderSchedule();
+      showMyPendingSchedules();
+    </script>
+  </body>
 </html>

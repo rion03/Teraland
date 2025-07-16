@@ -1,186 +1,173 @@
 <!DOCTYPE html>
 <html lang="ko">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>하스타티 메인</title>
-  <style>
-    body { margin: 0; font-family: Pretendard, sans-serif; background: #f5f6fa; }
-    header {
-      display: flex; justify-content: space-between; align-items: center;
-      background: #2f80ed; padding: 16px 32px; color: white;
-    }
-    nav ul { list-style: none; display: flex; gap: 24px; padding: 0; margin: 0; }
-    nav li { cursor: pointer; font-weight: bold; }
+  <head>
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
 
-    #auth-modal {
-      display: none; position: fixed; top: 80px; right: 40px;
-      background: white; border: 1px solid #ccc; padding: 20px;
-      border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-      z-index: 999; width: 300px;
-    }
-
-    input, select, button {
-      width: 100%; padding: 10px; margin: 6px 0;
-      border-radius: 6px; border: 1px solid #ccc;
-    }
-    button {
-      background: #2f80ed; color: white;
-      font-weight: bold; border: none; cursor: pointer;
-    }
-    .close-btn {
-      text-align: right;
-      margin-top: -16px;
-      margin-bottom: 10px;
-      cursor: pointer;
-      font-size: 14px;
-      color: #888;
-    }
-  </style>
-</head>
-<body>
-
-  <header>
-    <h2>하스타티</h2>
-    <div id="auth-actions">
-      <a href="#" onclick="toggleLogin()" style="margin-right: 12px; color: white;">로그인</a>
-      <a href="#" onclick="toggleRegister()" style="margin-right: 12px; color: white;">회원가입</a>
-      <a href="#" onclick="enterAdminMode()" style="color: white;">관리자</a>
-    </div>
-  </header>
-
-  <nav style="background: white; padding: 16px 32px;">
-    <ul>
-      <li onclick="requireLogin('hastati-member.html')">일정표 신청</li>
-      <li onclick="requireLogin('hastati-confirm.html')">확정 스케줄표</li>
-      <li onclick="requireLogin('hastati-admin.html')">관리자 페이지</li>
-    </ul>
-  </nav>
-
-  <!-- 로그인 / 회원가입 모달 -->
-  <div id="auth-modal">
-    <div class="close-btn" onclick="closeModal()">✖ 닫기</div>
-
-    <div id="login-form">
-      <h3>로그인</h3>
-      <input id="login-id" placeholder="아이디" />
-      <input id="login-pw" type="password" placeholder="비밀번호" />
-      <button onclick="handleLogin()">로그인</button>
-    </div>
-
-    <div id="register-form" style="display:none">
-      <h3>회원가입</h3>
-      <input id="reg-id" placeholder="아이디 (영문+숫자 6자 이상)" />
-      <input id="reg-pw" type="password" placeholder="비밀번호 (영문+숫자+특수문자)" />
-      <input id="reg-nick" placeholder="디스코드 닉네임" />
-      <select id="reg-role">
-        <option>하스타티</option>
-        <option>레가투스</option>
-        <option>헤나</option>
-      </select>
-      <button onclick="handleRegister()">회원가입</button>
-    </div>
-  </div>
-
-  <script>
-    let isAdmin = false;
-
-    function toggleLogin() {
-      document.getElementById('auth-modal').style.display = 'block';
-      document.getElementById('login-form').style.display = 'block';
-      document.getElementById('register-form').style.display = 'none';
-    }
-
-    function toggleRegister() {
-      document.getElementById('auth-modal').style.display = 'block';
-      document.getElementById('login-form').style.display = 'none';
-      document.getElementById('register-form').style.display = 'block';
-    }
-
-    function closeModal() {
-      document.getElementById('auth-modal').style.display = 'none';
-    }
-
-    function handleLogin() {
-      const id = document.getElementById('login-id').value.trim();
-      const pw = document.getElementById('login-pw').value.trim();
-      const user = JSON.parse(localStorage.getItem("user_" + id) || "null");
-      if (!user) return alert("회원가입을 먼저 진행해주세요.");
-      if (user.pw !== pw) return alert("비밀번호가 일치하지 않습니다.");
-      if (user.status !== "approved") return alert("승인 대기 중입니다.");
-      sessionStorage.setItem("currentUser", id);
-      alert(user.nickname + "님 로그인되었습니다.");
-      location.href = "hastati.html";
-    }
-
-    function handleRegister() {
-      const id = document.getElementById('reg-id').value.trim();
-      const pw = document.getElementById('reg-pw').value.trim();
-      const nick = document.getElementById('reg-nick').value.trim();
-      const role = document.getElementById('reg-role').value;
-
-      if (!/^[a-zA-Z0-9]{6,}$/.test(id)) return alert("아이디는 영문+숫자 6자 이상이어야 합니다.");
-      if (!/^(?=.*[a-zA-Z])(?=.*\d)(?=.*\W).{6,}$/.test(pw)) return alert("비밀번호는 조건을 만족해야 합니다.");
-      if (!nick) return alert("닉네임을 입력해주세요.");
-      if (!['하스타티','레가투스','헤나'].includes(role)) return alert("소속을 선택해주세요.");
-      if (localStorage.getItem("user_" + id)) return alert("이미 존재하는 아이디입니다.");
-
-      localStorage.setItem("user_" + id, JSON.stringify({ id, pw, nickname: nick, role, status: "pending" }));
-      alert("회원가입 완료! 관리자 승인 후 로그인 가능합니다.");
-      closeModal();
-    }
-
-    function enterAdminMode() {
-      const code = prompt("관리자 코드를 입력하세요");
-      if (code === "0109") {
-        alert("관리자 모드가 활성화되었습니다.");
-        sessionStorage.setItem("isAdmin", "true");
-        isAdmin = true;
-      } else {
-        alert("관리자 코드가 올바르지 않습니다.");
+    <script>
+      const firebaseConfig = {
+        apiKey: "AIzaSyD1BFxYBl2hMwGujnQO80Lo4DoIcq42lmM",
+        authDomain: "test-49494.firebaseapp.com",
+        projectId: "test-49494",
+        storageBucket: "test-49494.firebasestorage.app",
+        messagingSenderId: "111211224136",
+        appId: "1:111211224136:web:d660e9e41b39cf2302cc7d",
+        measurementId: "G-B0EH6JL7LP",
+      };
+      firebase.initializeApp(firebaseConfig);
+    </script>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>하스타티 메인</title>
+    <style>
+      body {
+        margin: 0;
+        font-family: Pretendard, sans-serif;
+        background: #f5f6fa;
       }
-    }
-
-    function logout() {
-      sessionStorage.removeItem("currentUser");
-      sessionStorage.removeItem("isAdmin");
-      alert("로그아웃 되었습니다.");
-      location.href = "hastati.html";
-    }
-
-    function requireLogin(target) {
-      const userId = sessionStorage.getItem("currentUser");
-      const user = userId ? JSON.parse(localStorage.getItem("user_" + userId)) : null;
-      const isAdminSession = sessionStorage.getItem("isAdmin") === "true";
-
-      if (!user && !isAdminSession) {
-        alert("로그인이 필요합니다.");
-        return;
+      header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: #2f80ed;
+        padding: 16px 32px;
+        color: white;
+      }
+      nav ul {
+        list-style: none;
+        display: flex;
+        gap: 24px;
+        padding: 0;
+        margin: 0;
+      }
+      nav li {
+        cursor: pointer;
+        font-weight: bold;
       }
 
-      if (target === "hastati-admin.html" && !isAdminSession) {
-        alert("관리자 모드로만 접근 가능합니다.");
-        return;
+      #auth-modal {
+        display: none;
+        position: fixed;
+        top: 80px;
+        right: 40px;
+        background: white;
+        border: 1px solid #ccc;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        z-index: 999;
+        width: 300px;
       }
 
-      location.href = target;
-    }
+      input,
+      select,
+      button {
+        width: 100%;
+        padding: 10px;
+        margin: 6px 0;
+        border-radius: 6px;
+        border: 1px solid #ccc;
+      }
+      button {
+        background: #2f80ed;
+        color: white;
+        font-weight: bold;
+        border: none;
+        cursor: pointer;
+      }
+      .close-btn {
+        text-align: right;
+        margin-top: -16px;
+        margin-bottom: 10px;
+        cursor: pointer;
+        font-size: 14px;
+        color: #888;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h2>하스타티</h2>
+      <div id="auth-actions">
+        <a
+          href="#"
+          onclick="toggleLogin()"
+          style="margin-right: 12px; color: white"
+          >로그인</a
+        >
+        <a
+          href="#"
+          onclick="toggleRegister()"
+          style="margin-right: 12px; color: white"
+          >회원가입</a
+        >
+        <a href="#" onclick="enterAdminMode()" style="color: white">관리자</a>
+      </div>
+    </header>
 
-    // 로그인 상태 유지 표시
-    const currentUserId = sessionStorage.getItem("currentUser");
-    const user = currentUserId ? JSON.parse(localStorage.getItem("user_" + currentUserId)) : null;
-    const authBox = document.getElementById('auth-actions');
+    <nav style="background: white; padding: 16px 32px">
+      <ul>
+        <li onclick="requireLogin('hastati-member.html')">일정표 신청</li>
+        <li onclick="requireLogin('hastati-confirm.html')">확정 스케줄표</li>
+        <li onclick="requireLogin('hastati-admin.html')">관리자 페이지</li>
+      </ul>
+    </nav>
 
-    if (user) {
-      authBox.innerHTML = `
-        <span style="color:white;">🌿 ${user.nickname} (${user.role})님</span>
-        <button onclick="logout()" style="margin-left: 12px; background: white; color: #2f80ed; border: none; border-radius: 6px; padding: 6px 12px; cursor: pointer;">
-          로그아웃
-        </button>
-      `;
-    }
-  </script>
+    <!-- 로그인 / 회원가입 모달 -->
+    <div id="auth-modal">
+      <div class="close-btn" onclick="closeModal()">✖ 닫기</div>
 
-</body>
+      <div id="login-form">
+        <h3>로그인</h3>
+        <input id="login-id" placeholder="아이디" />
+        <input id="login-pw" type="password" placeholder="비밀번호" />
+        <button onclick="handleLogin()">로그인</button>
+      </div>
+
+      <div id="register-form" style="display: none">
+        <h3>회원가입</h3>
+        <input id="reg-id" placeholder="아이디 (영문+숫자 6자 이상)" />
+        <input
+          id="reg-pw"
+          type="password"
+          placeholder="비밀번호 (영문+숫자+특수문자)"
+        />
+        <input id="reg-nick" placeholder="디스코드 닉네임" />
+        <select id="reg-role">
+          <option>하스타티</option>
+          <option>레가투스</option>
+          <option>헤나</option>
+        </select>
+        <button onclick="handleRegister()">회원가입</button>
+      </div>
+    </div>
+    <script type="module">
+      import {
+        toggleLogin,
+        toggleRegister,
+        closeModal,
+        handleLogin,
+        handleRegister,
+        enterAdminMode,
+        requireLogin,
+        logout,
+        updateAuthUI,
+      } from "./js/auth.js";
+
+      // HTML 요소가 이벤트 함수들을 인식하도록 window에 연결
+      window.toggleLogin = toggleLogin;
+      window.toggleRegister = toggleRegister;
+      window.closeModal = closeModal;
+      window.handleLogin = handleLogin;
+      window.handleRegister = handleRegister;
+      window.enterAdminMode = enterAdminMode;
+      window.requireLogin = requireLogin;
+      window.logout = logout;
+
+      // 페이지 로딩 시 로그인 상태 반영
+      updateAuthUI();
+    </script>
+  </body>
 </html>
-
