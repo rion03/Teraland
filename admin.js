@@ -1,96 +1,38 @@
 // js/admin.js
 
-async function loadSignupList() {
-  const container = document.getElementById("signup-list");
+// 기존 함수들 유지...
+// 아래 추가
+
+async function loadApprovedUsers() {
+  const container = document.getElementById("approved-users");
+  if (!container) return;
   container.innerHTML = "";
 
   const db = firebase.firestore();
-  const querySnapshot = await db
+  const snapshot = await db
     .collection("users")
-    .where("status", "==", "pending")
+    .where("status", "==", "approved")
     .get();
 
-  querySnapshot.forEach((doc) => {
+  snapshot.forEach((doc) => {
     const user = doc.data();
     const div = document.createElement("div");
     div.className = "entry";
     div.innerHTML = `
-      <strong>${user.nickname}</strong> (${user.id}, ${user.role})
+      ✅ <strong>${user.nickname}</strong> (${user.id}, ${user.role})
       <br/>
-      <button class="approve" onclick="approveUser('${doc.id}')">✅ 승인</button>
-      <button class="reject" onclick="rejectUser('${doc.id}')">❌ 거절</button>
+      <button class="reject" onclick="deleteUser('${doc.id}')">❌ 삭제</button>
     `;
     container.appendChild(div);
   });
 }
 
-async function loadScheduleList() {
-  const container = document.getElementById("schedule-list");
-  container.innerHTML = "";
-
-  const db = firebase.firestore();
-  const querySnapshot = await db
-    .collection("schedules")
-    .where("status", "==", "pending")
-    .orderBy("date")
-    .get();
-
-  querySnapshot.forEach((doc) => {
-    const item = doc.data();
-    const div = document.createElement("div");
-    div.className = "entry";
-    div.innerHTML = `
-      <strong>${item.nickname}</strong> - ${item.date} ${item.start} ~ ${item.end}
-      <br/>
-      <button class="approve" onclick="approveSchedule('${doc.id}')">✅ 승인</button>
-      <button class="reject" onclick="rejectSchedule('${doc.id}')">❌ 거절</button>
-    `;
-    container.appendChild(div);
-  });
-}
-
-async function approveUser(uid) {
-  const db = firebase.firestore();
-  await db.collection("users").doc(uid).update({ status: "approved" });
-  alert("회원 승인 완료");
-  loadSignupList();
-}
-
-async function rejectUser(uid) {
-  if (!confirm("정말로 거절하시겠습니까?")) return;
+async function deleteUser(uid) {
+  if (!confirm("정말로 이 계정을 삭제하시겠습니까?")) return;
   const db = firebase.firestore();
   await db.collection("users").doc(uid).delete();
-  alert("회원 삭제 완료");
-  loadSignupList();
-}
-
-async function approveSchedule(docId) {
-  const db = firebase.firestore();
-  await db.collection("schedules").doc(docId).update({ status: "approved" });
-  alert("일정 승인 완료");
-  loadScheduleList();
-}
-
-async function rejectSchedule(docId) {
-  if (!confirm("이 일정을 거절하시겠습니까?")) return;
-  const db = firebase.firestore();
-  await db.collection("schedules").doc(docId).delete();
-  alert("일정 거절 및 삭제 완료");
-  loadScheduleList();
-}
-
-function confirmAdmin() {
-  const code = document.getElementById("admin-code").value;
-  if (code === "0109") {
-    sessionStorage.setItem("isAdmin", "true");
-    if (!sessionStorage.getItem("currentUser")) {
-      sessionStorage.setItem("currentUser", "admin_temp");
-    }
-    alert("관리자 모드로 전환되었습니다.");
-    location.reload();
-  } else {
-    alert("잘못된 관리자 코드입니다.");
-  }
+  alert("계정 삭제 완료");
+  loadApprovedUsers();
 }
 
 export function initAdminPage() {
@@ -115,9 +57,11 @@ export function initAdminPage() {
 
   loadSignupList();
   loadScheduleList();
+  loadApprovedUsers(); // ✅ 추가됨
 
   window.approveUser = approveUser;
   window.rejectUser = rejectUser;
   window.approveSchedule = approveSchedule;
   window.rejectSchedule = rejectSchedule;
+  window.deleteUser = deleteUser; // ✅ 추가됨
 }
